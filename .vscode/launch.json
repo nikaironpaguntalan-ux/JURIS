@@ -1,0 +1,18 @@
+{
+    "version":"0.2.0",
+    "configurations":[
+        {
+            "type":"java",
+            "name":"Run GUI",
+            "request":"launch",
+            "mainClass":"MainApp",
+            "vmArgs":"--module-path \"C:\\Users\\Lenovo\\Desktop\\testProg\\lib\" --add-modules javafx.controls,javafx.fxml -Djava.library.path=\"C:\\Users\\Lenovo\\Desktop\\testProg\\lib\""
+        },
+        {
+            "type":"java",
+            "name":"Run Console",
+            "request":"launch",
+            "mainClass":"Console",
+        }
+    ]
+}
