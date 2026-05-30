@@ -11,6 +11,8 @@ import javafx.scene.layout.*;
 import javafx.stage.*;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+
 
 public class GUI {
 
@@ -295,49 +297,98 @@ public class GUI {
     }
 
     private VBox buildCasesPanel() {
-        VBox panel = new VBox(16);
-        panel.setPadding(new Insets(24));
+            VBox panel = new VBox(16);
+            panel.setPadding(new Insets(24));
+            Button addBtn = new Button("+ New Case");
+            styleRed(addBtn);
+            HBox header = headerRow("Case List", addBtn);
+            TextField caseIdFld = styledTextField("Case ID", "");
+            TextField accusedFld = styledTextField("Accused", "");
+            TextField prosecsFld = styledTextField("Prosecutor", "");
+            ComboBox<String> typeCb = combo("All", "All Cases ","Criminal","Civil","Violations","Administrative","Others");
+            ComboBox<String> statusCb = combo("All Status","Active","Resolved","Dismissed");
+            ComboBox<String> dateFilterCb = combo("All Time","Last 7 Days","Last 30 Days","This Year","Custom Range");
+            DatePicker fromDate = new DatePicker();
+            DatePicker toDate = new DatePicker();
+            fromDate.setDisable(true);
+            toDate.setDisable(true);
+            dateFilterCb.setOnAction(e -> {
+                boolean isCustom = "Custom Range".equals(dateFilterCb.getValue());
+                fromDate.setDisable(!isCustom);
+                toDate.setDisable(!isCustom);
+            });
+            Button searchBtn = new Button("Search");
+            styleBlue(searchBtn);
+            Button sortBtn = new Button("Sort ↑");
+            styleBlue(sortBtn);
+            TableView<CaseRec> table = buildCaseTable();
+            final boolean[] ascending = {true};
+            sortBtn.setOnAction(e -> {
+                ascending[0] = !ascending[0];
+                sortBtn.setText(ascending[0] ? "Sort ↑" : "Sort ↓");
 
-        Button addBtn = new Button("+ New Case");
-        styleRed(addBtn);
-        HBox header = headerRow("Case List", addBtn);
+                List<CaseRec> items = new java.util.ArrayList<>(table.getItems());
 
-        TextField searchFld = styledTextField("Search...", "");
-        searchFld.setPrefWidth(220);
+                items.sort((a, b) -> {
+                    int numA = Integer.parseInt(a.getCaseID().replaceAll("[^0-9]", ""));
+                    int numB = Integer.parseInt(b.getCaseID().replaceAll("[^0-9]", ""));
+                    return ascending[0]
+                        ? Integer.compare(numA, numB)
+                        : Integer.compare(numB, numA);
+                });
 
-        ComboBox<String> typeCb = combo("All Types","Criminal","Civil","Violations","Administrative","Others");
-        ComboBox<String> statusCb = combo("All Status","Active","Resolved","Dismissed");
-
-        Button searchBtn = new Button("Search");
-        styleBlue(searchBtn);
-
-        HBox searchBar = new HBox(10, searchFld, typeCb, statusCb, searchBtn);
-        searchBar.setAlignment(Pos.CENTER_LEFT);
-
-        TableView<CaseRec> table = buildCaseTable();
-
-        refreshCaseTable(table, null, null, null);
-
-        searchBtn.setOnAction(e -> refreshCaseTable(table, searchFld.getText().trim(), typeCb.getValue().startsWith("All")   ? null : typeCb.getValue(), statusCb.getValue().startsWith("All") ? null : statusCb.getValue()));
-        searchFld.setOnAction(e -> searchBtn.fire());
-        addBtn.setOnAction(e -> showCaseForm(null, table));
-
-        table.setRowFactory(tv -> {
-            TableRow<CaseRec> row = new TableRow<>();
-
-            row.setOnMouseClicked(e -> {
-                if (e.getClickCount() == 2 && !row.isEmpty()) {
-                    showCaseDetails(row.getItem(), table);
-                }
+                table.setItems(FXCollections.observableArrayList(items));
             });
 
-            return row;
-        });
+            searchBtn.setOnAction(e -> {
 
-        VBox.setVgrow(table, Priority.ALWAYS);
-        panel.getChildren().addAll(header, searchBar, table);
-        return panel;
-    }
+                if ("Custom Range".equals(dateFilterCb.getValue())) {
+                    if (fromDate.getValue() == null || toDate.getValue() == null) {
+                        alert("Error", "Please select both dates.");
+                        return;
+                    }
+                }
+
+                refreshCaseTable(
+                    table,
+                    caseIdFld.getText().trim(),
+                    accusedFld.getText().trim(),
+                    prosecsFld.getText().trim(),
+                    typeCb.getValue().startsWith("All Cases") ? null : typeCb.getValue(),
+                    statusCb.getValue().startsWith("All") ? null : statusCb.getValue(),
+                    dateFilterCb.getValue(),
+                    fromDate.getValue(),
+                    toDate.getValue()
+                );
+            });
+
+        
+            HBox row1 = new HBox(10, caseIdFld, accusedFld, prosecsFld, typeCb, statusCb);
+            HBox row2 = new HBox(10, dateFilterCb, fromDate, toDate, searchBtn, sortBtn);
+
+            row1.setAlignment(Pos.CENTER_LEFT);
+            row2.setAlignment(Pos.CENTER_LEFT);
+
+            VBox searchBar = new VBox(10, row1, row2);
+            refreshCaseTable(table, null, null, null, null, null, "All Time", null, null);
+
+            addBtn.setOnAction(e -> showCaseForm(null, table));
+
+            table.setRowFactory(tv -> {
+                TableRow<CaseRec> row = new TableRow<>();
+                row.setOnMouseClicked(e -> {
+                    if (e.getClickCount() == 2 && !row.isEmpty()) {
+                        showCaseDetails(row.getItem(), table);
+                    }
+                });
+                return row;
+            });
+
+            VBox.setVgrow(table, Priority.ALWAYS);
+            panel.getChildren().addAll(header, searchBar, table);
+
+            return panel;
+        }
 
     private TableView<CaseRec> buildCaseTable() {
         TableView<CaseRec> table = new TableView<>();
@@ -405,7 +456,7 @@ public class GUI {
                     if (confirm("Delete case " + c.getCaseID() + "?")) {
                         db.deleteCase(c.getCaseID());
                         db.writeAuditLog(currentUser.getUsername(), "DELETE_CASE", c.getCaseID());
-                        refreshCaseTable(table, null, null, null);
+                        refreshCaseTable(table, null, null, null, null,null, "All Time", null, null);
                     }
                 });
                 HBox box = new HBox(6, viewBtn, delBtn);
@@ -415,68 +466,74 @@ public class GUI {
         });
         return col;
     }
+    private void refreshCaseTable(
+        TableView<CaseRec> table,String caseId,String accused,String prosecutor,String type,String status,String dateFilter,LocalDate fromDate,LocalDate toDate) {
 
-    private void refreshCaseTable(TableView<CaseRec> table, String keyword, String type, String status) {
-        
-        String prosecFilter = currentUser.isProsecutor() ? currentUser.getFullName() : null;
+        String finalProsecutor = currentUser.isProsecutor()
+            ? currentUser.getFullName()
+            : prosecutor;
 
-        List<CaseRec> cases = db.searchCases(keyword, null, type, null, null, prosecFilter, status, null, prosecFilter);
+        List<CaseRec> cases = db.searchCasesAdvanced(caseId,accused,finalProsecutor,type,status,dateFilter,fromDate,toDate);
+        if (cases == null) {
+            cases = new java.util.ArrayList<>();
+        }
+        cases.sort((a, b) -> a.getCaseID().compareTo(b.getCaseID()));
         table.setItems(FXCollections.observableArrayList(cases));
     }
 
     private void showCaseDetails(CaseRec c, TableView<CaseRec> table) {
-        Stage dlg = dialog("Case Details | " + c.getCaseID());
-        VBox box = new VBox(12);
-        box.setPadding(new Insets(24));
-        box.setStyle("-fx-background-color: white;");
+                Stage dlg = dialog("Case Details | " + c.getCaseID());
+                VBox box = new VBox(12);
+                box.setPadding(new Insets(24));
+                box.setStyle("-fx-background-color: white;");
 
-        String bg = statusColor(c.getCaseStatus());
-        HBox hdr = new HBox(16);
-        hdr.setPadding(new Insets(12, 16, 12, 16));
-        hdr.setStyle("-fx-background-color: " + DARK_BLUE + "; -fx-background-radius: 6;");
-        Label idLbl = new Label(c.getCaseID());
-        idLbl.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
-        Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
-        Label statusLbl = new Label(c.getCaseStatus());
-        statusLbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;-fx-padding: 4 12; -fx-background-radius: 4; -fx-font-weight: bold;");
-        hdr.getChildren().addAll(idLbl, sp, statusLbl);
+                String bg = statusColor(c.getCaseStatus());
+                HBox hdr = new HBox(16);
+                hdr.setPadding(new Insets(12, 16, 12, 16));
+                hdr.setStyle("-fx-background-color: " + DARK_BLUE + "; -fx-background-radius: 6;");
+                Label idLbl = new Label(c.getCaseID());
+                idLbl.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
+                Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
+                Label statusLbl = new Label(c.getCaseStatus());
+                statusLbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;-fx-padding: 4 12; -fx-background-radius: 4; -fx-font-weight: bold;");
+                hdr.getChildren().addAll(idLbl, sp, statusLbl);
 
-        GridPane grid = new GridPane();
-        grid.setHgap(16); grid.setVgap(10);
-        grid.setPadding(new Insets(12, 0, 0, 0));
-        String[][] fields = {
-            {"Case Type",c.getCaseType()},
-            {"Nature",c.getCaseNature()},
-            {"Filing Date",c.getFiledDate()},
-            {"Accused", c.getAccused()},
-            {"Complainant", c.getComplainant()},
-            {"Prosecutor",c.getProsecutor()},
-            {"Judge",c.getJudge()},
-            {"Hearing Date",c.getHearingDate()},
-            {"Branch", c.getBranch()},
-            {"Witness",c.getWitness()},
-            {"Evidence",c.getEvidence()},
-            {"Verdict",c.getVerdict()},
-            {"Description",c.getCaseDesc()},
-        };
+                GridPane grid = new GridPane();
+                grid.setHgap(16); grid.setVgap(10);
+                grid.setPadding(new Insets(12, 0, 0, 0));
+                String[][] fields = {
+                    {"Case Type",c.getCaseType()},
+                    {"Nature",c.getCaseNature()},
+                    {"Filing Date",c.getFiledDate()},
+                    {"Accused", c.getAccused()},
+                    {"Complainant", c.getComplainant()},
+                    {"Prosecutor",c.getProsecutor()},
+                    {"Judge",c.getJudge()},
+                    {"Hearing Date",c.getHearingDate()},
+                    {"Branch", c.getBranch()},
+                    {"Witness",c.getWitness()},
+                    {"Evidence",c.getEvidence()},
+                    {"Verdict",c.getVerdict()},
+                    {"Description",c.getCaseDesc()},
+                };
 
-        for (int i = 0; i < fields.length; i++) {
-            Label k = new Label(fields[i][0] + ":");
-            k.setStyle("-fx-font-weight: bold; -fx-text-fill: " + DARK_BLUE + ";");
-            Label v = new Label(notEmpty(fields[i][1]));
-            v.setWrapText(true);
-            grid.add(k, 0, i); grid.add(v, 1, i);
-        }
+                for (int i = 0; i < fields.length; i++) {
+                    Label k = new Label(fields[i][0] + ":");
+                    k.setStyle("-fx-font-weight: bold; -fx-text-fill: " + DARK_BLUE + ";");
+                    Label v = new Label(notEmpty(fields[i][1]));
+                    v.setWrapText(true);
+                    grid.add(k, 0, i); grid.add(v, 1, i);
+                }
 
-        Button editBtn = new Button("Edit Case"); styleBlue(editBtn);
-        editBtn.setOnAction(e -> { dlg.close(); showCaseForm(c, table); });
-        Button closeBtn = new Button("Close");
-        closeBtn.setOnAction(e -> dlg.close());
+                Button editBtn = new Button("Edit Case"); styleBlue(editBtn);
+                editBtn.setOnAction(e -> { dlg.close(); showCaseForm(c, table); });
+                Button closeBtn = new Button("Close");
+                closeBtn.setOnAction(e -> dlg.close());
 
-        box.getChildren().addAll(hdr, grid, new HBox(10, editBtn, closeBtn));
-        dlg.setScene(new Scene(new ScrollPane(box), 540, 560));
-        dlg.showAndWait();
-    }
+                box.getChildren().addAll(hdr, grid, new HBox(10, editBtn, closeBtn));
+                dlg.setScene(new Scene(new ScrollPane(box), 540, 560));
+                dlg.showAndWait();
+            }
 
     private void showCaseForm(CaseRec existing, TableView<CaseRec> table) {
         boolean isEdit = existing != null;
@@ -484,6 +541,9 @@ public class GUI {
 
         VBox form = new VBox(10);
         form.setPadding(new Insets(24));
+        form.setPrefWidth(450);  
+        form.setMaxWidth(450);    
+        form.setOnMouseClicked(e -> form.requestFocus());
         form.setStyle("-fx-background-color: white;");
 
         Label heading = new Label(isEdit ? "Edit Case" : "Case Registration");
@@ -499,7 +559,12 @@ public class GUI {
         ComboBox<String> statusCb = comboVal(existing != null ? existing.getCaseStatus() : "Active", "Active","Resolved","Dismissed");
 
         TextField natureFld = styledTextField("Nature of Case *",val(existing, existing == null ? "" : existing.getCaseNature()));
-        TextField filedFld = styledTextField("Filing Date * (YYYY-MM-DD)", val(existing, existing == null ? "" : existing.getFiledDate()));
+        
+      DatePicker filedFld = new DatePicker();
+        if (existing != null && existing.getFiledDate() != null && !existing.getFiledDate().isEmpty()) {
+            filedFld.setValue(LocalDate.parse(existing.getFiledDate()));
+            }
+                filedFld.setPromptText("Filing date");
         TextField accusedFld = styledTextField("Accused Name *", val(existing, existing == null ? "" : existing.getAccused()));
         TextField complainantFld = styledTextField("Complainant Name *",val(existing, existing == null ? "" : existing.getComplainant()));
         TextField descFld = styledTextField("Description *", val(existing, existing == null ? "" : existing.getCaseDesc()));
@@ -540,7 +605,7 @@ public class GUI {
 
             if (caseIDFld.getText().trim().isEmpty()
                 || natureFld.getText().trim().isEmpty()
-                || filedFld.getText().trim().isEmpty()
+                || filedFld.getValue() == null
                 || accusedFld.getText().trim().isEmpty()
                 || complainantFld.getText().trim().isEmpty()
                 || descFld.getText().trim().isEmpty()) {
@@ -557,7 +622,7 @@ public class GUI {
                     typeCb.getValue(), natureFld.getText().trim(),
                     statusCb.getValue(), accusedFld.getText().trim(),
                     complainantFld.getText().trim(), prosec,
-                    blank(judgeFld), filedFld.getText().trim(),
+                    blank(judgeFld), filedFld.getValue().toString(),
                     blank(hearingFld), blank(witnessFld), blank(evidenceFld),
                     blank(branchFld), blank(verdictFld), descFld.getText().trim(),
                     caseID);
@@ -571,7 +636,7 @@ public class GUI {
                 ok = db.addCase(caseID, typeCb.getValue(),
                     natureFld.getText().trim(), statusCb.getValue(),
                     accusedFld.getText().trim(), complainantFld.getText().trim(),
-                    prosec, blank(judgeFld), filedFld.getText().trim(),
+                    prosec, blank(judgeFld), filedFld.getValue().toString(),
                     blank(hearingFld), blank(witnessFld), blank(evidenceFld),
                     blank(branchFld), blank(verdictFld), descFld.getText().trim());
 
@@ -582,16 +647,27 @@ public class GUI {
 
             if (ok) {
                 dlg.close();
-                if (table != null) refreshCaseTable(table, null, null, null);
+                Alert success = new Alert(Alert.AlertType.INFORMATION);
+                success.setTitle("Success");
+                success.setHeaderText(null);
+                success.setContentText(isEdit 
+                    ? "Case updated successfully!" 
+                    : "Case added successfully!");
+                    success.showAndWait();
+
+                if (table != null) refreshCaseTable(table, null, null, null,null, null, "All Time", null, null);
             } else {
                 errorLbl.setText("Failed to save. Check logs.");
             }
         });
 
-        ScrollPane sp = new ScrollPane(form);
+        ScrollPane sp = new ScrollPane();
+        sp.setContent(form);
         sp.setFitToWidth(true);
+        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         dlg.setScene(new Scene(sp, 520, 680));
-        dlg.showAndWait();
+        Platform.runLater(() -> caseIDFld.requestFocus());
+        dlg.show();
     }
 
     private VBox buildSchedulePanel() {
@@ -708,6 +784,13 @@ public class GUI {
         dlg.setScene(new Scene(form, 420, 260)); dlg.showAndWait();
     }
 
+   private void refreshUserTable(TableView<User> table) {
+    table.setItems(FXCollections.observableArrayList(db.getAllUsers()));
+}
+
+
+
+
     private VBox buildUsersPanel() {
         VBox panel = new VBox(16);
         panel.setPadding(new Insets(24));
@@ -794,10 +877,6 @@ public class GUI {
         VBox.setVgrow(table, Priority.ALWAYS);
         panel.getChildren().addAll(header, table);
         return panel;
-    }
-
-    private void refreshUserTable(TableView<User> table) {
-        table.setItems(FXCollections.observableArrayList(db.getAllUsers()));
     }
 
     private void showAddUserDialog(TableView<User> table) {
@@ -926,10 +1005,16 @@ public class GUI {
     }
 
     private TextField styledTextField(String prompt, String value) {
-        TextField f = new TextField(value);
+    TextField f = new TextField();
+
+    if (value != null && !value.isEmpty()) {
+        f.setText(value);
+    } else {
         f.setPromptText(prompt);
-        styleInput(f);
-        return f;
+    }
+
+    styleInput(f);
+    return f;
     }
 
     private Button smallBtn(String text, String color) {
@@ -1005,12 +1090,14 @@ public class GUI {
         return form;
     }
 
-    private Stage dialog(String title) {
-        Stage dlg = new Stage();
-        dlg.initModality(Modality.APPLICATION_MODAL);
-        dlg.setTitle(title);
-        return dlg;
+   private Stage dialog(String title) {
+    Stage dlg = new Stage();
+    dlg.initOwner(stage);
+    dlg.initModality(Modality.APPLICATION_MODAL);
+    dlg.setTitle(title);
+    return dlg;
     }
+    
 
     private String statusColor(String status) {
         return switch (status != null ? status : "") {
@@ -1034,9 +1121,9 @@ public class GUI {
         return t.isEmpty() ? null : t;
     }
 
-    private String val(CaseRec c, String fallback) {
-        return c != null ? fallback : "";
-    }
+    private String val(CaseRec c, String value) {
+    return (c != null && value != null) ? value : "";
+        }
 
     private void alert(String title, String msg) {
         new Alert(Alert.AlertType.WARNING, msg, ButtonType.OK).showAndWait();

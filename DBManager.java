@@ -434,26 +434,115 @@ public class DBManager {
         return list;
     }
 
-    public boolean deleteCase(String caseID) {
-        String sql = "DELETE FROM cases WHERE caseID = ?";
+   public List<CaseRec> searchCasesAdvanced(
+    String caseId,
+    String accused,
+    String prosecutor,
+    String type,
+    String status,
+    String dateFilter,
+    LocalDate fromDate,
+    LocalDate toDate
+) {
 
-        try (PreparedStatement ps = conn().prepareStatement(sql)) {
-            ps.setString(1, caseID);
+    List<CaseRec> results = new ArrayList<>();
 
-            boolean ok = ps.executeUpdate() > 0;
+    try {
+        StringBuilder sql = new StringBuilder("SELECT * FROM cases WHERE 1=1");
+        List<Object> params = new ArrayList<>();
 
-            if (ok) {
-                System.out.println("\nCase " + caseID + " deleted.");
-            } else {
-                System.out.println("\nCase deletion failed.");
-            }
-            return ok;
-
-        } catch (SQLException e) {
-            System.err.println("[DB] deleteCase: " + e.getMessage());
-            return false;
+        // ✅ CASE ID
+        if (caseId != null && !caseId.isEmpty()) {
+            sql.append(" AND caseID LIKE ?");
+            params.add("%" + caseId + "%");
         }
+
+        // ✅ ACCUSED
+        if (accused != null && !accused.isEmpty()) {
+            sql.append(" AND accused LIKE ?");
+            params.add("%" + accused + "%");
+        }
+
+        // ✅ PROSECUTOR
+        if (prosecutor != null && !prosecutor.isEmpty()) {
+            sql.append(" AND prosecutor LIKE ?");
+            params.add("%" + prosecutor + "%");
+        }
+
+        // ✅ TYPE
+        if (type != null) {
+            sql.append(" AND caseType = ?");
+            params.add(type);
+        }
+
+        // ✅ STATUS
+        if (status != null) {
+            sql.append(" AND caseStatus = ?");
+            params.add(status);
+        }
+
+        // ✅ DATE FILTER
+        if (dateFilter != null) {
+            switch (dateFilter) {
+
+                case "Last 7 Days":
+                    sql.append(" AND filedDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+                    break;
+
+                case "Last 30 Days":
+                    sql.append(" AND filedDate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+                    break;
+
+                case "This Year":
+                    sql.append(" AND YEAR(filedDate) = YEAR(CURDATE())");
+                    break;
+
+                case "Custom Range":
+                    if (fromDate != null && toDate != null) {
+                        sql.append(" AND filedDate BETWEEN ? AND ?");
+                        params.add(fromDate.toString());
+                        params.add(toDate.toString());
+                    }
+                    break;
+            }
+        }
+
+        PreparedStatement ps = conn().prepareStatement(sql.toString());
+
+        for (int i = 0; i < params.size(); i++) {
+            ps.setObject(i + 1, params.get(i));
+        }
+
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+            CaseRec c = new CaseRec(
+                rs.getString("caseID"),
+                rs.getString("caseType"),
+                rs.getString("caseNature"),
+                rs.getString("caseStatus"),
+                rs.getString("accused"),
+                rs.getString("complainant"),
+                rs.getString("prosecutor"),
+                rs.getString("judge"),
+                rs.getString("filedDate"),
+                rs.getString("hearingDate"),
+                rs.getString("witness"),
+                rs.getString("evidence"),
+                rs.getString("branch"),
+                rs.getString("verdict"),
+                rs.getString("caseDesc")
+            );
+
+            results.add(c);
+        }
+
+    } catch (SQLException e) {
+        System.err.println("[DB] searchCasesAdvanced: " + e.getMessage());
     }
+
+    return results;
+}
 
     public boolean updtStatus(String id, String newStatus){
         return updt(id, "caseStatus",newStatus); 
@@ -519,6 +608,19 @@ public class DBManager {
             return false;
         }
     }
+
+    public boolean deleteCase(String caseID) {
+    String sql = "DELETE FROM cases WHERE caseID = ?";
+
+    try (PreparedStatement ps = conn().prepareStatement(sql)) {
+        ps.setString(1, caseID);
+        return ps.executeUpdate() > 0;
+
+    } catch (SQLException e) {
+        System.err.println("[DB] deleteCase: " + e.getMessage());
+        return false;
+    }
+}
 
     public int[] getCaseStats() {
         int[] stats = new int[4];
