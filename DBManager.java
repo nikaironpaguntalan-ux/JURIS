@@ -700,6 +700,18 @@ public class DBManager {
             return false;
         }
     }
+        public List<Schedules> searchSchedulesAdvanced(
+        String caseId,
+        String accused,
+        String dateFilter,
+        LocalDate from,
+        LocalDate to) {
+
+        return getUpcomingSchedules();
+    }
+
+    
+
 
     public boolean reschedule(int scheduleId, String newDatetime, String reason, String updatedBy) {
         String sql = "UPDATE schedules SET ReSched = ?, reason = ? WHERE id = ?";

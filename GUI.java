@@ -1,3 +1,4 @@
+
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -12,17 +13,17 @@ import javafx.stage.*;
 import java.util.List;
 import java.util.Optional;
 import java.time.LocalDate;
-
+import javax.xml.crypto.Data;
 
 public class GUI {
 
-    static final String RED="#D91921";
-    static final String BLUE="#03439E";
-    static final String DARK_BLUE="#03285D";
-    static final String LIGHT_BLUE="#D6E9FA";
-    static final String WHITE="#FFFFFF";
-    static final String LT_GRAY="#F5F5F5";
-    static final String DK_GRAY="#212121";
+    static final String RED = "#D91921";
+    static final String BLUE = "#03439E";
+    static final String DARK_BLUE = "#03285D";
+    static final String LIGHT_BLUE = "#D6E9FA";
+    static final String WHITE = "#FFFFFF";
+    static final String LT_GRAY = "#F5F5F5";
+    static final String DK_GRAY = "#212121";
 
     private final Stage stage;
     private final DBManager db = new DBManager();
@@ -39,7 +40,7 @@ public class GUI {
         stage.setMinHeight(700);
 
         if (!DBConfig.testConnection()) {
-            new Alert(Alert.AlertType.ERROR, "Cannot connect to the database.\nCheck DBConfig.java settings.",ButtonType.OK).showAndWait();
+            new Alert(Alert.AlertType.ERROR, "Cannot connect to the database.\nCheck DBConfig.java settings.", ButtonType.OK).showAndWait();
             Platform.exit();
             return;
         }
@@ -60,9 +61,10 @@ public class GUI {
         ImageView logoImg = new ImageView();
 
         try {
-            Image img = new Image(GUI.class.getResourceAsStream("juris_logo.png"),320, 120, true, true);
+            Image img = new Image(GUI.class.getResourceAsStream("juris_logo.png"), 320, 120, true, true);
             logoImg.setImage(img);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         logoImg.setFitWidth(300);
         logoImg.setPreserveRatio(true);
@@ -86,7 +88,7 @@ public class GUI {
         styleRed(loginBtn);
         loginBtn.setPrefWidth(300);
         loginBtn.setPrefHeight(42);
-        loginBtn.setStyle(loginBtn.getStyle()+ "-fx-font-size: 14px; -fx-font-weight: bold;");
+        loginBtn.setStyle(loginBtn.getStyle() + "-fx-font-size: 14px; -fx-font-weight: bold;");
 
         card.getChildren().addAll(logoImg, subtitle, new Separator(), userLbl, userField, passLbl, passField, errorLbl, loginBtn);
         loginRoot.getChildren().add(card);
@@ -123,7 +125,7 @@ public class GUI {
         root.setStyle("-fx-background-color: " + LT_GRAY + ";");
         root.setTop(buildTopBar());
         root.setLeft(buildSidebar());
-        root.setCenter(buildDashboardPanel()); 
+        root.setCenter(buildDashboardPanel());
 
         stage.setScene(new Scene(root, 1200, 750));
         stage.setTitle("JURIS | " + currentUser.getRole() + ": " + currentUser.getFullName());
@@ -140,7 +142,8 @@ public class GUI {
         try {
             Image img = new Image(GUI.class.getResourceAsStream("juris_whitelogo.png"), 160, 44, true, true);
             barLogo.setImage(img);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         barLogo.setFitHeight(40);
         barLogo.setPreserveRatio(true);
@@ -170,19 +173,18 @@ public class GUI {
         sidebar.setStyle("-fx-background-color: " + BLUE + ";");
 
         Object[][] items = {
-            {"Dashboard","icon_dashboard.png",(Runnable)() -> root.setCenter(buildDashboardPanel())},
-            {"Cases","icon_cases.png",(Runnable)() -> root.setCenter(buildCasesPanel())},
-            {"Schedule","icon_schedule.png",(Runnable)() -> root.setCenter(buildSchedulePanel())},
-            {"Users","icon_users.png",(Runnable)() -> root.setCenter(buildUsersPanel())},
-            {"Audit Logs","icon_auditlog.png",(Runnable)() -> root.setCenter(buildAuditLogPanel())},
-        };
+            {"Dashboard", "icon_dashboard.png", (Runnable) () -> root.setCenter(buildDashboardPanel())},
+            {"Cases", "icon_cases.png", (Runnable) () -> root.setCenter(buildCasesPanel())},
+            {"Schedule", "icon_schedule.png", (Runnable) () -> root.setCenter(buildSchedulePanel())},
+            {"Users", "icon_users.png", (Runnable) () -> root.setCenter(buildUsersPanel())},
+            {"Audit Logs", "icon_auditlog.png", (Runnable) () -> root.setCenter(buildAuditLogPanel())},};
 
         for (Object[] item : items) {
-            String label = (String)item[0];
-            String file= (String)item[1];
-            Runnable action = (Runnable)item[2];
+            String label = (String) item[0];
+            String file = (String) item[1];
+            Runnable action = (Runnable) item[2];
 
-            if ((label.equals("Users") || label.equals("Audit Logs")) && !currentUser.isAdmin()){
+            if ((label.equals("Users") || label.equals("Audit Logs")) && !currentUser.isAdmin()) {
                 continue;
             }
 
@@ -196,13 +198,14 @@ public class GUI {
             try {
                 Image img = new Image(GUI.class.getResourceAsStream(file), 20, 20, true, true);
                 btn.setGraphic(new ImageView(img));
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
 
             String normal = "-fx-background-color: transparent; -fx-text-fill: " + WHITE + "; -fx-font-size: 13px; -fx-cursor: hand;";
-            String hover  = "-fx-background-color: " + DARK_BLUE + "; -fx-text-fill: " + WHITE + "; -fx-font-size: 13px; -fx-cursor: hand;";
+            String hover = "-fx-background-color: " + DARK_BLUE + "; -fx-text-fill: " + WHITE + "; -fx-font-size: 13px; -fx-cursor: hand;";
             btn.setStyle(normal);
             btn.setOnMouseEntered(e -> btn.setStyle(hover));
-            btn.setOnMouseExited(e  -> btn.setStyle(normal));
+            btn.setOnMouseExited(e -> btn.setStyle(normal));
             btn.setOnAction(e -> action.run());
             sidebar.getChildren().add(btn);
         }
@@ -217,10 +220,10 @@ public class GUI {
 
         int[] stats = db.getCaseStats();
         HBox cards = new HBox(16,
-            statCard("Total Active Cases", String.valueOf(stats[1]), BLUE),
-            statCard("Resolved Cases",String.valueOf(stats[2]), "#1E8A44"),
-            statCard("Dismissed Cases",String.valueOf(stats[3]), RED),
-            statCard("Total Prosecutors",String.valueOf(db.getProsecutorCount()), DARK_BLUE)
+                statCard("Total Active Cases", String.valueOf(stats[1]), BLUE),
+                statCard("Resolved Cases", String.valueOf(stats[2]), "#1E8A44"),
+                statCard("Dismissed Cases", String.valueOf(stats[3]), RED),
+                statCard("Total Prosecutors", String.valueOf(db.getProsecutorCount()), DARK_BLUE)
         );
 
         VBox typeBox = chartBox("Case Categories", db.getCasesByType(), stats[0], BLUE);
@@ -229,7 +232,7 @@ public class GUI {
 
         HBox bottom = new HBox(20, typeBox, wlBox);
         HBox.setHgrow(typeBox, Priority.ALWAYS);
-        HBox.setHgrow(wlBox,   Priority.ALWAYS);
+        HBox.setHgrow(wlBox, Priority.ALWAYS);
 
         panel.getChildren().addAll(heading, cards, bottom);
         ScrollPane sp = new ScrollPane(panel);
@@ -285,7 +288,7 @@ public class GUI {
             try {
                 pb.setProgress(Integer.parseInt(row[1]) / (double) Math.max(maxVal, 1));
             } catch (Exception ignored) {
-                pb.setProgress(0); 
+                pb.setProgress(0);
             }
 
             pb.setPrefWidth(180);
@@ -297,59 +300,59 @@ public class GUI {
     }
 
     private VBox buildCasesPanel() {
-            VBox panel = new VBox(16);
-            panel.setPadding(new Insets(24));
-            Button addBtn = new Button("+ New Case");
-            styleRed(addBtn);
-            HBox header = headerRow("Case List", addBtn);
-            TextField caseIdFld = styledTextField("Case ID", "");
-            TextField accusedFld = styledTextField("Accused", "");
-            TextField prosecsFld = styledTextField("Prosecutor", "");
-            ComboBox<String> typeCb = combo("All", "All Cases ","Criminal","Civil","Violations","Administrative","Others");
-            ComboBox<String> statusCb = combo("All Status","Active","Resolved","Dismissed");
-            ComboBox<String> dateFilterCb = combo("All Time","Last 7 Days","Last 30 Days","This Year","Custom Range");
-            DatePicker fromDate = new DatePicker();
-            DatePicker toDate = new DatePicker();
-            fromDate.setDisable(true);
-            toDate.setDisable(true);
-            dateFilterCb.setOnAction(e -> {
-                boolean isCustom = "Custom Range".equals(dateFilterCb.getValue());
-                fromDate.setDisable(!isCustom);
-                toDate.setDisable(!isCustom);
-            });
-            Button searchBtn = new Button("Search");
-            styleBlue(searchBtn);
-            Button sortBtn = new Button("Sort ↑");
-            styleBlue(sortBtn);
-            TableView<CaseRec> table = buildCaseTable();
-            final boolean[] ascending = {true};
-            sortBtn.setOnAction(e -> {
-                ascending[0] = !ascending[0];
-                sortBtn.setText(ascending[0] ? "Sort ↑" : "Sort ↓");
+        VBox panel = new VBox(16);
+        panel.setPadding(new Insets(24));
+        Button addBtn = new Button("+ New Case");
+        styleRed(addBtn);
+        HBox header = headerRow("Case List", addBtn);
+        TextField caseIdFld = styledTextField("Case ID", "");
+        TextField accusedFld = styledTextField("Accused", "");
+        TextField prosecsFld = styledTextField("Prosecutor", "");
+        ComboBox<String> typeCb = combo("All", "All Cases ", "Criminal", "Civil", "Violations", "Administrative", "Others");
+        ComboBox<String> statusCb = combo("All Status", "Active", "Resolved", "Dismissed");
+        ComboBox<String> dateFilterCb = combo("All Time", "Last 7 Days", "Last 30 Days", "This Year", "Custom Range");
+        DatePicker fromDate = new DatePicker();
+        DatePicker toDate = new DatePicker();
+        fromDate.setDisable(true);
+        toDate.setDisable(true);
+        dateFilterCb.setOnAction(e -> {
+            boolean isCustom = "Custom Range".equals(dateFilterCb.getValue());
+            fromDate.setDisable(!isCustom);
+            toDate.setDisable(!isCustom);
+        });
+        Button searchBtn = new Button("Search");
+        styleBlue(searchBtn);
+        Button sortBtn = new Button("Sort ↑");
+        styleBlue(sortBtn);
+        TableView<CaseRec> table = buildCaseTable();
+        final boolean[] ascending = {true};
+        sortBtn.setOnAction(e -> {
+            ascending[0] = !ascending[0];
+            sortBtn.setText(ascending[0] ? "Sort ↑" : "Sort ↓");
 
-                List<CaseRec> items = new java.util.ArrayList<>(table.getItems());
+            List<CaseRec> items = new java.util.ArrayList<>(table.getItems());
 
-                items.sort((a, b) -> {
-                    int numA = Integer.parseInt(a.getCaseID().replaceAll("[^0-9]", ""));
-                    int numB = Integer.parseInt(b.getCaseID().replaceAll("[^0-9]", ""));
-                    return ascending[0]
+            items.sort((a, b) -> {
+                int numA = Integer.parseInt(a.getCaseID().replaceAll("[^0-9]", ""));
+                int numB = Integer.parseInt(b.getCaseID().replaceAll("[^0-9]", ""));
+                return ascending[0]
                         ? Integer.compare(numA, numB)
                         : Integer.compare(numB, numA);
-                });
-
-                table.setItems(FXCollections.observableArrayList(items));
             });
 
-            searchBtn.setOnAction(e -> {
+            table.setItems(FXCollections.observableArrayList(items));
+        });
 
-                if ("Custom Range".equals(dateFilterCb.getValue())) {
-                    if (fromDate.getValue() == null || toDate.getValue() == null) {
-                        alert("Error", "Please select both dates.");
-                        return;
-                    }
+        searchBtn.setOnAction(e -> {
+
+            if ("Custom Range".equals(dateFilterCb.getValue())) {
+                if (fromDate.getValue() == null || toDate.getValue() == null) {
+                    alert("Error", "Please select both dates.");
+                    return;
                 }
+            }
 
-                refreshCaseTable(
+            refreshCaseTable(
                     table,
                     caseIdFld.getText().trim(),
                     accusedFld.getText().trim(),
@@ -359,36 +362,35 @@ public class GUI {
                     dateFilterCb.getValue(),
                     fromDate.getValue(),
                     toDate.getValue()
-                );
+            );
+        });
+
+        HBox row1 = new HBox(10, caseIdFld, accusedFld, prosecsFld, typeCb, statusCb);
+        HBox row2 = new HBox(10, dateFilterCb, fromDate, toDate, searchBtn, sortBtn);
+
+        row1.setAlignment(Pos.CENTER_LEFT);
+        row2.setAlignment(Pos.CENTER_LEFT);
+
+        VBox searchBar = new VBox(10, row1, row2);
+        refreshCaseTable(table, null, null, null, null, null, "All Time", null, null);
+
+        addBtn.setOnAction(e -> showCaseForm(null, table));
+
+        table.setRowFactory(tv -> {
+            TableRow<CaseRec> row = new TableRow<>();
+            row.setOnMouseClicked(e -> {
+                if (e.getClickCount() == 2 && !row.isEmpty()) {
+                    showCaseDetails(row.getItem(), table);
+                }
             });
+            return row;
+        });
 
-        
-            HBox row1 = new HBox(10, caseIdFld, accusedFld, prosecsFld, typeCb, statusCb);
-            HBox row2 = new HBox(10, dateFilterCb, fromDate, toDate, searchBtn, sortBtn);
+        VBox.setVgrow(table, Priority.ALWAYS);
+        panel.getChildren().addAll(header, searchBar, table);
 
-            row1.setAlignment(Pos.CENTER_LEFT);
-            row2.setAlignment(Pos.CENTER_LEFT);
-
-            VBox searchBar = new VBox(10, row1, row2);
-            refreshCaseTable(table, null, null, null, null, null, "All Time", null, null);
-
-            addBtn.setOnAction(e -> showCaseForm(null, table));
-
-            table.setRowFactory(tv -> {
-                TableRow<CaseRec> row = new TableRow<>();
-                row.setOnMouseClicked(e -> {
-                    if (e.getClickCount() == 2 && !row.isEmpty()) {
-                        showCaseDetails(row.getItem(), table);
-                    }
-                });
-                return row;
-            });
-
-            VBox.setVgrow(table, Priority.ALWAYS);
-            panel.getChildren().addAll(header, searchBar, table);
-
-            return panel;
-        }
+        return panel;
+    }
 
     private TableView<CaseRec> buildCaseTable() {
         TableView<CaseRec> table = new TableView<>();
@@ -396,13 +398,13 @@ public class GUI {
         table.setStyle("-fx-font-size: 13px;");
 
         table.getColumns().addAll(
-            plainCol("Case No.","caseID",130),
-            plainCol("Accused","accused",150),
-            plainCol("Case Type","caseType",110),
-            plainCol("Prosecutor","prosecutor",140),
-            statusCol(),
-            plainCol("Filing Date","filedDate",110),
-            actionCol(table)
+                plainCol("Case No.", "caseID", 130),
+                plainCol("Accused", "accused", 150),
+                plainCol("Case Type", "caseType", 110),
+                plainCol("Prosecutor", "prosecutor", 140),
+                statusCol(),
+                plainCol("Filing Date", "filedDate", 110),
+                actionCol(table)
         );
 
         return table;
@@ -412,15 +414,24 @@ public class GUI {
         TableColumn<CaseRec, String> col = plainCol("Status", "caseStatus", 100);
 
         col.setCellFactory(c -> new TableCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
+            @Override
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) { setText(null); setStyle(""); return; }
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
                 setText(item);
                 String bg = switch (item) {
-                    case "Active" -> BLUE;
-                    case "Resolved" -> "#1E8A44";
-                    case "Dismissed" -> RED;
-                    default-> "#888";
+                    case "Active" ->
+                        BLUE;
+                    case "Resolved" ->
+                        "#1E8A44";
+                    case "Dismissed" ->
+                        RED;
+                    default ->
+                        "#888";
                 };
                 setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;-fx-background-radius: 4; -fx-alignment: CENTER;");
             }
@@ -433,8 +444,8 @@ public class GUI {
         col.setPrefWidth(130);
         col.setCellFactory(c -> new TableCell<>() {
 
-            final Button viewBtn=smallBtn("View", BLUE);
-            final Button delBtn=smallBtn("Del",  RED);
+            final Button viewBtn = smallBtn("View", BLUE);
+            final Button delBtn = smallBtn("Del", RED);
 
             @Override
             protected void updateItem(Void v, boolean empty) {
@@ -444,19 +455,20 @@ public class GUI {
                     return;
                 }
 
-                viewBtn.setOnAction(e ->
-                    showCaseDetails(getTableView().getItems().get(getIndex()), table));
+                viewBtn.setOnAction(e
+                        -> showCaseDetails(getTableView().getItems().get(getIndex()), table));
 
                 delBtn.setOnAction(e -> {
                     if (!currentUser.isAdmin()) {
-                        alert("Access Denied", "Only Admin can delete cases."); return;
+                        alert("Access Denied", "Only Admin can delete cases.");
+                        return;
                     }
 
                     CaseRec c = getTableView().getItems().get(getIndex());
                     if (confirm("Delete case " + c.getCaseID() + "?")) {
                         db.deleteCase(c.getCaseID());
                         db.writeAuditLog(currentUser.getUsername(), "DELETE_CASE", c.getCaseID());
-                        refreshCaseTable(table, null, null, null, null,null, "All Time", null, null);
+                        refreshCaseTable(table, null, null, null, null, null, "All Time", null, null);
                     }
                 });
                 HBox box = new HBox(6, viewBtn, delBtn);
@@ -466,14 +478,15 @@ public class GUI {
         });
         return col;
     }
+
     private void refreshCaseTable(
-        TableView<CaseRec> table,String caseId,String accused,String prosecutor,String type,String status,String dateFilter,LocalDate fromDate,LocalDate toDate) {
+            TableView<CaseRec> table, String caseId, String accused, String prosecutor, String type, String status, String dateFilter, LocalDate fromDate, LocalDate toDate) {
 
         String finalProsecutor = currentUser.isProsecutor()
-            ? currentUser.getFullName()
-            : prosecutor;
+                ? currentUser.getFullName()
+                : prosecutor;
 
-        List<CaseRec> cases = db.searchCasesAdvanced(caseId,accused,finalProsecutor,type,status,dateFilter,fromDate,toDate);
+        List<CaseRec> cases = db.searchCasesAdvanced(caseId, accused, finalProsecutor, type, status, dateFilter, fromDate, toDate);
         if (cases == null) {
             cases = new java.util.ArrayList<>();
         }
@@ -481,59 +494,85 @@ public class GUI {
         table.setItems(FXCollections.observableArrayList(cases));
     }
 
+    private void refreshScheduleTable(
+            TableView<Schedules> table,
+            String caseId,
+            String accused,
+            String dateFilter,
+            LocalDate fromDate,
+            LocalDate toDate) {
+        List<Schedules> list = db.searchSchedulesAdvanced(
+                caseId,
+                accused,
+                dateFilter,
+                fromDate,
+                toDate
+        );
+        if (list == null) {
+            list = new java.util.ArrayList<>();
+        }
+        table.setItems(FXCollections.observableArrayList(list));
+    }
+
     private void showCaseDetails(CaseRec c, TableView<CaseRec> table) {
-                Stage dlg = dialog("Case Details | " + c.getCaseID());
-                VBox box = new VBox(12);
-                box.setPadding(new Insets(24));
-                box.setStyle("-fx-background-color: white;");
+        Stage dlg = dialog("Case Details | " + c.getCaseID());
+        VBox box = new VBox(12);
+        box.setPadding(new Insets(24));
+        box.setStyle("-fx-background-color: white;");
 
-                String bg = statusColor(c.getCaseStatus());
-                HBox hdr = new HBox(16);
-                hdr.setPadding(new Insets(12, 16, 12, 16));
-                hdr.setStyle("-fx-background-color: " + DARK_BLUE + "; -fx-background-radius: 6;");
-                Label idLbl = new Label(c.getCaseID());
-                idLbl.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
-                Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
-                Label statusLbl = new Label(c.getCaseStatus());
-                statusLbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;-fx-padding: 4 12; -fx-background-radius: 4; -fx-font-weight: bold;");
-                hdr.getChildren().addAll(idLbl, sp, statusLbl);
+        String bg = statusColor(c.getCaseStatus());
+        HBox hdr = new HBox(16);
+        hdr.setPadding(new Insets(12, 16, 12, 16));
+        hdr.setStyle("-fx-background-color: " + DARK_BLUE + "; -fx-background-radius: 6;");
+        Label idLbl = new Label(c.getCaseID());
+        idLbl.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
+        Label statusLbl = new Label(c.getCaseStatus());
+        statusLbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;-fx-padding: 4 12; -fx-background-radius: 4; -fx-font-weight: bold;");
+        hdr.getChildren().addAll(idLbl, sp, statusLbl);
 
-                GridPane grid = new GridPane();
-                grid.setHgap(16); grid.setVgap(10);
-                grid.setPadding(new Insets(12, 0, 0, 0));
-                String[][] fields = {
-                    {"Case Type",c.getCaseType()},
-                    {"Nature",c.getCaseNature()},
-                    {"Filing Date",c.getFiledDate()},
-                    {"Accused", c.getAccused()},
-                    {"Complainant", c.getComplainant()},
-                    {"Prosecutor",c.getProsecutor()},
-                    {"Judge",c.getJudge()},
-                    {"Hearing Date",c.getHearingDate()},
-                    {"Branch", c.getBranch()},
-                    {"Witness",c.getWitness()},
-                    {"Evidence",c.getEvidence()},
-                    {"Verdict",c.getVerdict()},
-                    {"Description",c.getCaseDesc()},
-                };
+        GridPane grid = new GridPane();
+        grid.setHgap(16);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(12, 0, 0, 0));
+        String[][] fields = {
+            {"Case Type", c.getCaseType()},
+            {"Nature", c.getCaseNature()},
+            {"Filing Date", c.getFiledDate()},
+            {"Accused", c.getAccused()},
+            {"Complainant", c.getComplainant()},
+            {"Prosecutor", c.getProsecutor()},
+            {"Judge", c.getJudge()},
+            {"Hearing Date", c.getHearingDate()},
+            {"Branch", c.getBranch()},
+            {"Witness", c.getWitness()},
+            {"Evidence", c.getEvidence()},
+            {"Verdict", c.getVerdict()},
+            {"Description", c.getCaseDesc()},};
 
-                for (int i = 0; i < fields.length; i++) {
-                    Label k = new Label(fields[i][0] + ":");
-                    k.setStyle("-fx-font-weight: bold; -fx-text-fill: " + DARK_BLUE + ";");
-                    Label v = new Label(notEmpty(fields[i][1]));
-                    v.setWrapText(true);
-                    grid.add(k, 0, i); grid.add(v, 1, i);
-                }
+        for (int i = 0; i < fields.length; i++) {
+            Label k = new Label(fields[i][0] + ":");
+            k.setStyle("-fx-font-weight: bold; -fx-text-fill: " + DARK_BLUE + ";");
+            Label v = new Label(notEmpty(fields[i][1]));
+            v.setWrapText(true);
+            grid.add(k, 0, i);
+            grid.add(v, 1, i);
+        }
 
-                Button editBtn = new Button("Edit Case"); styleBlue(editBtn);
-                editBtn.setOnAction(e -> { dlg.close(); showCaseForm(c, table); });
-                Button closeBtn = new Button("Close");
-                closeBtn.setOnAction(e -> dlg.close());
+        Button editBtn = new Button("Edit Case");
+        styleBlue(editBtn);
+        editBtn.setOnAction(e -> {
+            dlg.close();
+            showCaseForm(c, table);
+        });
+        Button closeBtn = new Button("Close");
+        closeBtn.setOnAction(e -> dlg.close());
 
-                box.getChildren().addAll(hdr, grid, new HBox(10, editBtn, closeBtn));
-                dlg.setScene(new Scene(new ScrollPane(box), 540, 560));
-                dlg.showAndWait();
-            }
+        box.getChildren().addAll(hdr, grid, new HBox(10, editBtn, closeBtn));
+        dlg.setScene(new Scene(new ScrollPane(box), 540, 560));
+        dlg.show();
+    }
 
     private void showCaseForm(CaseRec existing, TableView<CaseRec> table) {
         boolean isEdit = existing != null;
@@ -541,8 +580,8 @@ public class GUI {
 
         VBox form = new VBox(10);
         form.setPadding(new Insets(24));
-        form.setPrefWidth(450);  
-        form.setMaxWidth(450);    
+        form.setPrefWidth(450);
+        form.setMaxWidth(450);
         form.setOnMouseClicked(e -> form.requestFocus());
         form.setStyle("-fx-background-color: white;");
 
@@ -554,19 +593,19 @@ public class GUI {
         TextField caseIDFld = styledTextField("Case Number *", suggestedID);
         Label caseIDNote = smallNote("Auto-generated. You may change it.");
 
-        ComboBox<String> typeCb = comboVal(existing != null ? existing.getCaseType() : "Criminal", "Criminal","Civil","Violations","Administrative","Others");
+        ComboBox<String> typeCb = comboVal(existing != null ? existing.getCaseType() : "Criminal", "Criminal", "Civil", "Violations", "Administrative", "Others");
 
-        ComboBox<String> statusCb = comboVal(existing != null ? existing.getCaseStatus() : "Active", "Active","Resolved","Dismissed");
+        ComboBox<String> statusCb = comboVal(existing != null ? existing.getCaseStatus() : "Active", "Active", "Resolved", "Dismissed");
 
-        TextField natureFld = styledTextField("Nature of Case *",val(existing, existing == null ? "" : existing.getCaseNature()));
-        
-      DatePicker filedFld = new DatePicker();
+        TextField natureFld = styledTextField("Nature of Case *", val(existing, existing == null ? "" : existing.getCaseNature()));
+
+        DatePicker filedFld = new DatePicker();
         if (existing != null && existing.getFiledDate() != null && !existing.getFiledDate().isEmpty()) {
             filedFld.setValue(LocalDate.parse(existing.getFiledDate()));
-            }
-                filedFld.setPromptText("Filing date");
+        }
+        filedFld.setPromptText("Filing date");
         TextField accusedFld = styledTextField("Accused Name *", val(existing, existing == null ? "" : existing.getAccused()));
-        TextField complainantFld = styledTextField("Complainant Name *",val(existing, existing == null ? "" : existing.getComplainant()));
+        TextField complainantFld = styledTextField("Complainant Name *", val(existing, existing == null ? "" : existing.getComplainant()));
         TextField descFld = styledTextField("Description *", val(existing, existing == null ? "" : existing.getCaseDesc()));
 
         Label optLbl = smallNote("─── Optional Fields ───");
@@ -578,37 +617,40 @@ public class GUI {
         String curProsec = (existing != null && existing.getProsecutor() != null) ? existing.getProsecutor() : "(Unassigned)";
         prosecCb.setValue(prosecs.contains(curProsec) ? curProsec : "(Unassigned)");
 
-        TextField judgeFld= styledTextField("Judge (optional)", opt(existing == null ? null : existing.getJudge()));
-        TextField hearingFld= styledTextField("Hearing Date (YYYY-MM-DD, optional)", opt(existing == null ? null : existing.getHearingDate()));
-        TextField branchFld = styledTextField("Branch (optional)",opt(existing == null ? null : existing.getBranch()));
+        TextField judgeFld = styledTextField("Judge (optional)", opt(existing == null ? null : existing.getJudge()));
+        TextField hearingFld = styledTextField("Hearing Date (YYYY-MM-DD, optional)", opt(existing == null ? null : existing.getHearingDate()));
+        TextField branchFld = styledTextField("Branch (optional)", opt(existing == null ? null : existing.getBranch()));
         TextField witnessFld = styledTextField("Witness (optional)", opt(existing == null ? null : existing.getWitness()));
-        TextField evidenceFld = styledTextField("Evidence (optional)",opt(existing == null ? null : existing.getEvidence()));
-        TextField verdictFld= styledTextField("Verdict (optional)", opt(existing == null ? null : existing.getVerdict()));
+        TextField evidenceFld = styledTextField("Evidence (optional)", opt(existing == null ? null : existing.getEvidence()));
+        TextField verdictFld = styledTextField("Verdict (optional)", opt(existing == null ? null : existing.getVerdict()));
 
-        Label errorLbl = new Label(""); errorLbl.setStyle("-fx-text-fill: " + RED + ";");
+        Label errorLbl = new Label("");
+        errorLbl.setStyle("-fx-text-fill: " + RED + ";");
 
         Button saveBtn = new Button(isEdit ? "Save Changes" : "Register Case");
-        styleRed(saveBtn); saveBtn.setPrefWidth(200);
-        Button cancelBtn = new Button("Cancel"); cancelBtn.setOnAction(e -> dlg.close());
+        styleRed(saveBtn);
+        saveBtn.setPrefWidth(200);
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.setOnAction(e -> dlg.close());
 
-        form.getChildren().addAll( heading,
-            label("Case Number *:"), caseIDFld, caseIDNote,
-            label("Case Type *:"), typeCb,
-            label("Case Status:"), statusCb,
-            natureFld, filedFld, accusedFld, complainantFld, descFld, optLbl,
-            label("Prosecutor:"), prosecCb,
-            judgeFld, hearingFld, branchFld, witnessFld, evidenceFld, verdictFld,
-            errorLbl, new HBox(12, saveBtn, cancelBtn)
+        form.getChildren().addAll(heading,
+                label("Case Number *:"), caseIDFld, caseIDNote,
+                label("Case Type *:"), typeCb,
+                label("Case Status:"), statusCb,
+                natureFld, filedFld, accusedFld, complainantFld, descFld, optLbl,
+                label("Prosecutor:"), prosecCb,
+                judgeFld, hearingFld, branchFld, witnessFld, evidenceFld, verdictFld,
+                errorLbl, new HBox(12, saveBtn, cancelBtn)
         );
 
         saveBtn.setOnAction(e -> {
 
             if (caseIDFld.getText().trim().isEmpty()
-                || natureFld.getText().trim().isEmpty()
-                || filedFld.getValue() == null
-                || accusedFld.getText().trim().isEmpty()
-                || complainantFld.getText().trim().isEmpty()
-                || descFld.getText().trim().isEmpty()) {
+                    || natureFld.getText().trim().isEmpty()
+                    || filedFld.getValue() == null
+                    || accusedFld.getText().trim().isEmpty()
+                    || complainantFld.getText().trim().isEmpty()
+                    || descFld.getText().trim().isEmpty()) {
                 errorLbl.setText("Please fill in all required (*) fields.");
                 return;
             }
@@ -619,29 +661,30 @@ public class GUI {
             boolean ok;
             if (isEdit) {
                 db.updt_all(existing.getCaseID(),
-                    typeCb.getValue(), natureFld.getText().trim(),
-                    statusCb.getValue(), accusedFld.getText().trim(),
-                    complainantFld.getText().trim(), prosec,
-                    blank(judgeFld), filedFld.getValue().toString(),
-                    blank(hearingFld), blank(witnessFld), blank(evidenceFld),
-                    blank(branchFld), blank(verdictFld), descFld.getText().trim(),
-                    caseID);
+                        typeCb.getValue(), natureFld.getText().trim(),
+                        statusCb.getValue(), accusedFld.getText().trim(),
+                        complainantFld.getText().trim(), prosec,
+                        blank(judgeFld), filedFld.getValue().toString(),
+                        blank(hearingFld), blank(witnessFld), blank(evidenceFld),
+                        blank(branchFld), blank(verdictFld), descFld.getText().trim(),
+                        caseID);
                 db.writeAuditLog(currentUser.getUsername(), "UPDATE_CASE", "Updated: " + existing.getCaseID());
                 ok = true;
             } else {
-                if (db.getCaseByCaseID(caseID) != null) {errorLbl.setText("Case ID already exists.");
-                return;
+                if (db.getCaseByCaseID(caseID) != null) {
+                    errorLbl.setText("Case ID already exists.");
+                    return;
                 }
 
                 ok = db.addCase(caseID, typeCb.getValue(),
-                    natureFld.getText().trim(), statusCb.getValue(),
-                    accusedFld.getText().trim(), complainantFld.getText().trim(),
-                    prosec, blank(judgeFld), filedFld.getValue().toString(),
-                    blank(hearingFld), blank(witnessFld), blank(evidenceFld),
-                    blank(branchFld), blank(verdictFld), descFld.getText().trim());
+                        natureFld.getText().trim(), statusCb.getValue(),
+                        accusedFld.getText().trim(), complainantFld.getText().trim(),
+                        prosec, blank(judgeFld), filedFld.getValue().toString(),
+                        blank(hearingFld), blank(witnessFld), blank(evidenceFld),
+                        blank(branchFld), blank(verdictFld), descFld.getText().trim());
 
-                if (ok){
-                    db.writeAuditLog(currentUser.getUsername(),"REGISTER_CASE", caseID);
+                if (ok) {
+                    db.writeAuditLog(currentUser.getUsername(), "REGISTER_CASE", caseID);
                 }
             }
 
@@ -650,12 +693,14 @@ public class GUI {
                 Alert success = new Alert(Alert.AlertType.INFORMATION);
                 success.setTitle("Success");
                 success.setHeaderText(null);
-                success.setContentText(isEdit 
-                    ? "Case updated successfully!" 
-                    : "Case added successfully!");
-                    success.showAndWait();
+                success.setContentText(isEdit
+                        ? "Case updated successfully!"
+                        : "Case added successfully!");
+                success.showAndWait();
 
-                if (table != null) refreshCaseTable(table, null, null, null,null, null, "All Time", null, null);
+                if (table != null) {
+                    refreshCaseTable(table, null, null, null, null, null, "All Time", null, null);
+                }
             } else {
                 errorLbl.setText("Failed to save. Check logs.");
             }
@@ -670,132 +715,301 @@ public class GUI {
         dlg.show();
     }
 
+    private void showViewScheduleDialog(Schedules s) {
+        Stage dlg = dialog("Schedule Details");
+        VBox box = whiteForm();
+        CaseRec c = db.getCaseByCaseID(s.getCaseID());
+        String accused = (c != null) ? c.getAccused() : "—";
+        box.getChildren().addAll(
+                formHeading("Hearing Schedule"),
+                new Label("Case ID: " + s.getCaseID()),
+                new Label("Accused: " + accused),
+                new Label("Scheduled: " + s.getDatetime()),
+                new Label("Rescheduled To: " + notEmpty(s.getReSched())),
+                new Label("Reason: " + notEmpty(s.getReason()))
+        );
+        Button close = new Button("Close");
+        close.setOnAction(e -> dlg.close());
+        box.getChildren().add(close);
+        dlg.setScene(new Scene(box, 350, 270));
+        dlg.show();
+    }
+
     private VBox buildSchedulePanel() {
         VBox panel = new VBox(16);
         panel.setPadding(new Insets(24));
-
-        Button addBtn = new Button("+ New Hearing"); styleRed(addBtn);
+        Button addBtn = new Button("+ New Hearing");
+        styleRed(addBtn);
         HBox header = headerRow("Hearing Calendar", addBtn);
-
+        TextField caseIdFld = styledTextField("Case ID", "");
+        TextField accusedFld = styledTextField("Accused Name", "");
+        ComboBox<String> dateFilterCb = combo("All Time",
+                "All Time", "Last 7 Days", "Last 30 Days", "This Year", "Custom Range");
+        DatePicker fromDate = new DatePicker();
+        DatePicker toDate = new DatePicker();
+        fromDate.setDisable(true);
+        toDate.setDisable(true);
+        dateFilterCb.setOnAction(e -> {
+            boolean isCustom = "Custom Range".equals(dateFilterCb.getValue());
+            fromDate.setDisable(!isCustom);
+            toDate.setDisable(!isCustom);
+        });
+        Button searchBtn = new Button("Search");
+        styleBlue(searchBtn);
+        HBox searchRow = new HBox(10,
+                caseIdFld,
+                accusedFld,
+                dateFilterCb,
+                fromDate,
+                toDate,
+                searchBtn
+        );
+        searchRow.setAlignment(Pos.CENTER_LEFT);
         TableView<Schedules> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        table.setStyle("-fx-font-size: 13px;");
-
         TableColumn<Schedules, String> caseCol = new TableColumn<>("Case ID");
         caseCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getCaseID()));
-        caseCol.setPrefWidth(150);
-
+        TableColumn<Schedules, String> accusedCol = new TableColumn<>("Accused Name");
+        accusedCol.setCellValueFactory(d -> {
+            CaseRec c = db.getCaseByCaseID(d.getValue().getCaseID());
+            return new SimpleStringProperty(c != null ? c.getAccused() : "—");
+        });
         TableColumn<Schedules, String> dtCol = new TableColumn<>("Scheduled Date/Time");
-        dtCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getDatetime()));
-        dtCol.setPrefWidth(180);
 
-        TableColumn<Schedules, String> rsCol = new TableColumn<>("Rescheduled To");
-        rsCol.setCellValueFactory(d -> new SimpleStringProperty(notEmpty(d.getValue().getReSched())));
-        rsCol.setPrefWidth(180);
+        dtCol.setCellValueFactory(d
+                -> new SimpleStringProperty(d.getValue().getDatetime())
+        );
 
-        TableColumn<Schedules, String> reasonCol = new TableColumn<>("Reason");
-        reasonCol.setCellValueFactory(d -> new SimpleStringProperty(notEmpty(d.getValue().getReason())));
-        reasonCol.setPrefWidth(200);
+        dtCol.setCellFactory(col -> new TableCell<Schedules, String>() {
+            private final Label dateLabel = new Label();
+            private final Button viewBtn = smallBtn("View", BLUE);
+            private final HBox box = new HBox(8, dateLabel, viewBtn);
 
-        TableColumn<Schedules, Void> actCol = new TableColumn<>("Action");
-        actCol.setPrefWidth(130);
-        actCol.setCellFactory(c -> new TableCell<>() {
-            final Button rsBtn = smallBtn("Reschedule", BLUE);
-            @Override protected void updateItem(Void v, boolean empty) {
-                super.updateItem(v, empty);
+            {
+                box.setAlignment(Pos.CENTER);
+                viewBtn.setOnAction(e -> {
+                    Schedules s = getTableView().getItems().get(getIndex());
+                    showViewScheduleDialog(s);
+                });
+            }
 
-                if (empty) {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
                     setGraphic(null);
-                    return; 
+                } else {
+                    dateLabel.setText(item);
+                    setGraphic(box);
                 }
-
-                rsBtn.setOnAction(e ->showRescheduleDialog(getTableView().getItems().get(getIndex()), table));
-                setGraphic(rsBtn);
             }
         });
 
-        table.getColumns().addAll(caseCol, dtCol, rsCol, reasonCol, actCol);
+        TableColumn<Schedules, String> rsCol = new TableColumn<>("Rescheduled To");
+        rsCol.setCellValueFactory(d -> new SimpleStringProperty(notEmpty(d.getValue().getReSched())));
+        TableColumn<Schedules, String> reasonCol = new TableColumn<>("Reason");
+        reasonCol.setCellValueFactory(d -> new SimpleStringProperty(notEmpty(d.getValue().getReason())));
+        TableColumn<Schedules, Void> actCol = new TableColumn<>("Action");
+        actCol.setCellFactory(col -> new TableCell<Schedules, Void>() {
+            private final Button rsBtn = smallBtn("Reschedule", BLUE);
+
+            {
+                rsBtn.setOnAction(e -> {
+                    Schedules s = getTableView().getItems().get(getIndex());
+                    showRescheduleDialog(s, table);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (empty) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(new HBox(6, rsBtn));
+                }
+            }
+        });
+        table.getColumns().addAll(caseCol, accusedCol, dtCol, rsCol, reasonCol, actCol);
         table.setItems(FXCollections.observableArrayList(db.getUpcomingSchedules()));
-
+        searchBtn.setOnAction(e -> {
+            if ("Custom Range".equals(dateFilterCb.getValue())) {
+                if (fromDate.getValue() == null || toDate.getValue() == null) {
+                    alert("Error", "Please select both dates.");
+                    return;
+                }
+            }
+            refreshScheduleTable(
+                    table,
+                    caseIdFld.getText().trim(),
+                    accusedFld.getText().trim(),
+                    dateFilterCb.getValue(),
+                    fromDate.getValue(),
+                    toDate.getValue()
+            );
+        });
         addBtn.setOnAction(e -> showAddScheduleDialog(table));
-
         VBox.setVgrow(table, Priority.ALWAYS);
-        panel.getChildren().addAll(header, table);
+        panel.getChildren().addAll(header, searchRow, table);
         return panel;
     }
 
     private void showAddScheduleDialog(TableView<Schedules> table) {
-        Stage dlg=dialog("Add Hearing Schedule");
-        VBox form=whiteForm();
-
+        Stage dlg = dialog("Add Hearing Schedule");
+        VBox form = whiteForm();
         form.getChildren().add(formHeading("New Hearing Schedule"));
         TextField caseIDFld = styledTextField("Case ID *", "");
-        TextField datetimeFld = styledTextField("Date & Time * (YYYY-MM-DD HH:MM:SS)", "");
-
+        DatePicker datePicker = new DatePicker();
+        datePicker.setPromptText("Select Date");
+        Spinner<Integer> hour = new Spinner<>(1, 12, 9);
+        Spinner<Integer> minute = new Spinner<>(0, 59, 0);
+        Spinner<Integer> second = new Spinner<>(0, 59, 0);
+        ComboBox<String> ampm = new ComboBox<>();
+        ampm.getItems().addAll("AM", "PM");
+        ampm.setValue("AM");
+        hour.setEditable(true);
+        minute.setEditable(true);
+        second.setEditable(true);
+        HBox timeBox = new HBox(5,
+                hour, new Label(":"),
+                minute, new Label(":"),
+                second,
+                new Label(" "),
+                ampm
+        );
         Label err = errLabel();
-        Button save = new Button("Save"); styleRed(save);
-        Button cancel = new Button("Cancel"); cancel.setOnAction(e -> dlg.close());
-
+        Button save = new Button("Save");
+        styleRed(save);
+        Button cancel = new Button("Cancel");
+        cancel.setOnAction(e -> dlg.close());
         save.setOnAction(e -> {
-            if (caseIDFld.getText().trim().isEmpty() || datetimeFld.getText().trim().isEmpty()) {
+            if (caseIDFld.getText().trim().isEmpty() || datePicker.getValue() == null) {
                 err.setText("All fields required.");
                 return;
             }
+            int h = hour.getValue();
+            int m = minute.getValue();
+            int s = second.getValue();
 
-            if (db.getCaseByCaseID(caseIDFld.getText().trim()) == null) {
-                err.setText("Case ID not found.");
-                return;
+            if (ampm.getValue().equals("PM") && h != 12) {
+                h += 12;
+            } else if (ampm.getValue().equals("AM") && h == 12) {
+                h = 0;
             }
 
-            db.addSched(caseIDFld.getText().trim(), datetimeFld.getText().trim(), currentUser.getUsername());
-            db.writeAuditLog(currentUser.getUsername(), "ADD_SCHEDULE", "Case: " + caseIDFld.getText().trim());
+            String datetime = datePicker.getValue()
+                    + String.format(" %02d:%02d:%02d", h, m, s);
+            db.addSched(
+                    caseIDFld.getText().trim(),
+                    datetime,
+                    currentUser.getUsername()
+            );
             table.setItems(FXCollections.observableArrayList(db.getUpcomingSchedules()));
             dlg.close();
         });
-        form.getChildren().addAll(caseIDFld, datetimeFld, err, new HBox(10, save, cancel));
-        dlg.setScene(new Scene(form, 420, 280)); dlg.showAndWait();
+        form.getChildren().addAll(
+                caseIDFld,
+                datePicker,
+                timeBox,
+                err,
+                new HBox(10, save, cancel)
+        );
+
+        dlg.setScene(new Scene(form, 420, 280));
+        dlg.show();
     }
 
     private void showRescheduleDialog(Schedules s, TableView<Schedules> table) {
         Stage dlg = dialog("Reschedule - Case: " + s.getCaseID());
         VBox form = whiteForm();
-
         form.getChildren().add(formHeading("Reschedule Hearing"));
-        TextField dtFld = styledTextField("New Date & Time (YYYY-MM-DD HH:MM:SS)", "");
+        DatePicker datePicker = new DatePicker();
+        Spinner<Integer> hour = new Spinner<>(1, 12, 9);
+        Spinner<Integer> minute = new Spinner<>(0, 59, 0);
+        Spinner<Integer> second = new Spinner<>(0, 59, 0);
+        ComboBox<String> ampm = new ComboBox<>();
+        ampm.getItems().addAll("AM", "PM");
+        ampm.setValue("AM");
+        hour.setEditable(true);
+        minute.setEditable(true);
+        second.setEditable(true);
+        HBox timeBox = new HBox(5,
+                hour, new Label(":"),
+                minute, new Label(":"),
+                second,
+                new Label(" "),
+                ampm
+        );
+        timeBox.setAlignment(Pos.CENTER_LEFT);
         TextField reasonFld = styledTextField("Reason", "");
-
         Label err = errLabel();
         Button save = new Button("Save");
         styleRed(save);
-
         Button cancel = new Button("Cancel");
         cancel.setOnAction(e -> dlg.close());
-
         save.setOnAction(e -> {
-            if (dtFld.getText().trim().isEmpty()) { 
-                err.setText("Date/time required.");
+            if (datePicker.getValue() == null) {
+                err.setText("Please select date.");
                 return;
             }
-            db.reschedule(s.getDbId(), dtFld.getText().trim(), reasonFld.getText().trim(), currentUser.getUsername());
+            int h = hour.getValue();
+            int m = minute.getValue();
+            int sVal = second.getValue();
+            if (ampm.getValue().equals("PM") && h != 12) {
+                h += 12;
+            } else if (ampm.getValue().equals("AM") && h == 12) {
+                h = 0;
+            }
+            String datetime = datePicker.getValue() + String.format(" %02d:%02d:%02d", h, m, sVal);
+            db.reschedule(
+                    s.getDbId(),
+                    datetime,
+                    reasonFld.getText().trim(),
+                    currentUser.getUsername()
+            );
+
             table.setItems(FXCollections.observableArrayList(db.getUpcomingSchedules()));
             dlg.close();
         });
-        form.getChildren().addAll(dtFld, reasonFld, err, new HBox(10, save, cancel));
-        dlg.setScene(new Scene(form, 420, 260)); dlg.showAndWait();
+        form.getChildren().addAll(
+                new Label("Select Date:"),
+                datePicker,
+                new Label("Select Time:"),
+                timeBox,
+                reasonFld,
+                err,
+                new HBox(10, save, cancel)
+        );
+        dlg.setScene(new Scene(form, 420, 280));
+        dlg.show();
     }
 
-   private void refreshUserTable(TableView<User> table) {
-    table.setItems(FXCollections.observableArrayList(db.getAllUsers()));
-}
+    private void refreshUserTable(TableView<User> table) {
+        table.setItems(FXCollections.observableArrayList(db.getAllUsers()));
+    }
 
+    private HBox timePicker() {
+        Spinner<Integer> hour = new Spinner<>(0, 23, 9);
+        Spinner<Integer> minute = new Spinner<>(0, 59, 0);
+        hour.setEditable(true);
+        minute.setEditable(true);
+        hour.setPrefWidth(70);
+        minute.setPrefWidth(70);
+        Label colon = new Label(":");
+        HBox box = new HBox(5, hour, colon, minute);
+        box.setAlignment(Pos.CENTER_LEFT);
+        box.setUserData(new Spinner[]{hour, minute});
 
-
+        return box;
+    }
 
     private VBox buildUsersPanel() {
         VBox panel = new VBox(16);
         panel.setPadding(new Insets(24));
 
-        Button addBtn = new Button("+ Add User"); styleRed(addBtn);
+        Button addBtn = new Button("+ Add User");
+        styleRed(addBtn);
         HBox header = headerRow("User Management", addBtn);
 
         TableView<User> table = new TableView<>();
@@ -846,7 +1060,7 @@ public class GUI {
 
                 if (empty) {
                     setGraphic(null);
-                    return; 
+                    return;
                 }
 
                 User u = getTableView().getItems().get(getIndex());
@@ -854,11 +1068,11 @@ public class GUI {
 
                 toggleBtn.setText(active ? "Deactivate" : "Activate");
                 toggleBtn.setStyle("-fx-background-color: " + (active ? RED : "#1E8A44") + ";-fx-text-fill: white; -fx-background-radius: 4; -fx-padding: 3 8;");
-                
+
                 toggleBtn.setOnAction(e -> {
-                    if (active){
+                    if (active) {
                         db.DeactivateUser(u.getUsername());
-                    }else {
+                    } else {
                         db.ReactivateUser(u.getUsername());
                     }
                     refreshUserTable(table);
@@ -901,17 +1115,18 @@ public class GUI {
 
         save.setOnAction(e -> {
             if (usernameFld.getText().trim().isEmpty() || fullNameFld.getText().trim().isEmpty() || pwFld.getText().isEmpty()) {
-                err.setText("All fields required."); 
-                return; 
+                err.setText("All fields required.");
+                return;
             }
 
             boolean ok = db.AddUser(usernameFld.getText().trim(), pwFld.getText(), roleCb.getValue(), fullNameFld.getText().trim());
-            
+
             if (ok) {
                 db.writeAuditLog(currentUser.getUsername(), "CREATE_USER", usernameFld.getText() + " [" + roleCb.getValue() + "]");
-                refreshUserTable(table); dlg.close();
+                refreshUserTable(table);
+                dlg.close();
             } else {
-                err.setText("Failed. Username may already exist."); 
+                err.setText("Failed. Username may already exist.");
             }
 
         });
@@ -949,7 +1164,7 @@ public class GUI {
 
             if (pwFld.getText().length() < 6) {
                 err.setText("Minimum 6 characters.");
-                return; 
+                return;
             }
 
             db.UpdatePassword(u.getUsername(), pwFld.getText());
@@ -970,7 +1185,7 @@ public class GUI {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setStyle("-fx-font-size: 13px;");
 
-        String[][] cols = {{"Time","0","160"},{"User","1","140"},{"Action","2","160"},{"Details","3","300"}};
+        String[][] cols = {{"Time", "0", "160"}, {"User", "1", "140"}, {"Action", "2", "160"}, {"Details", "3", "300"}};
         for (String[] c : cols) {
             int idx = Integer.parseInt(c[1]);
             TableColumn<String[], String> col = new TableColumn<>(c[0]);
@@ -989,14 +1204,14 @@ public class GUI {
         String s = "-fx-background-color:%s;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:5;-fx-padding:8 20;-fx-cursor:hand;";
         b.setStyle(String.format(s, RED));
         b.setOnMouseEntered(e -> b.setStyle(String.format(s, "#b01419")));
-        b.setOnMouseExited(e  -> b.setStyle(String.format(s, RED)));
+        b.setOnMouseExited(e -> b.setStyle(String.format(s, RED)));
     }
 
     private void styleBlue(Button b) {
         String s = "-fx-background-color:%s;-fx-text-fill:white;-fx-font-weight:bold;-fx-background-radius:5;-fx-padding:8 20;-fx-cursor:hand;";
         b.setStyle(String.format(s, BLUE));
         b.setOnMouseEntered(e -> b.setStyle(String.format(s, DARK_BLUE)));
-        b.setOnMouseExited(e  -> b.setStyle(String.format(s, BLUE)));
+        b.setOnMouseExited(e -> b.setStyle(String.format(s, BLUE)));
     }
 
     private void styleInput(Control f) {
@@ -1005,16 +1220,16 @@ public class GUI {
     }
 
     private TextField styledTextField(String prompt, String value) {
-    TextField f = new TextField();
+        TextField f = new TextField();
 
-    if (value != null && !value.isEmpty()) {
-        f.setText(value);
-    } else {
-        f.setPromptText(prompt);
-    }
+        if (value != null && !value.isEmpty()) {
+            f.setText(value);
+        } else {
+            f.setPromptText(prompt);
+        }
 
-    styleInput(f);
-    return f;
+        styleInput(f);
+        return f;
     }
 
     private Button smallBtn(String text, String color) {
@@ -1046,7 +1261,8 @@ public class GUI {
         HBox row = new HBox(12);
         row.setAlignment(Pos.CENTER_LEFT);
         Label lbl = sectionHeading(title);
-        Region sp = new Region(); HBox.setHgrow(sp, Priority.ALWAYS);
+        Region sp = new Region();
+        HBox.setHgrow(sp, Priority.ALWAYS);
         row.getChildren().addAll(lbl, sp, actionBtn);
         return row;
     }
@@ -1063,7 +1279,9 @@ public class GUI {
         return l;
     }
 
-    private Label label(String text) { return new Label(text); }
+    private Label label(String text) {
+        return new Label(text);
+    }
 
     private Label smallNote(String text) {
         Label l = new Label(text);
@@ -1090,21 +1308,24 @@ public class GUI {
         return form;
     }
 
-   private Stage dialog(String title) {
-    Stage dlg = new Stage();
-    dlg.initOwner(stage);
-    dlg.initModality(Modality.APPLICATION_MODAL);
-    dlg.setTitle(title);
-    return dlg;
+    private Stage dialog(String title) {
+        Stage dlg = new Stage();
+        dlg.initOwner(stage);
+        dlg.initModality(Modality.APPLICATION_MODAL);
+        dlg.setTitle(title);
+        return dlg;
     }
-    
 
     private String statusColor(String status) {
         return switch (status != null ? status : "") {
-            case "Active" -> BLUE;
-            case "Resolved" -> "#1E8A44";
-            case "Dismissed" -> RED;
-            default -> "#888";
+            case "Active" ->
+                BLUE;
+            case "Resolved" ->
+                "#1E8A44";
+            case "Dismissed" ->
+                RED;
+            default ->
+                "#888";
         };
     }
 
@@ -1112,8 +1333,8 @@ public class GUI {
         return (s != null && !s.isEmpty()) ? s : "—";
     }
 
-    private String opt(String s){ 
-        return s != null ? s : ""; 
+    private String opt(String s) {
+        return s != null ? s : "";
     }
 
     private String blank(TextField f) {
@@ -1122,8 +1343,8 @@ public class GUI {
     }
 
     private String val(CaseRec c, String value) {
-    return (c != null && value != null) ? value : "";
-        }
+        return (c != null && value != null) ? value : "";
+    }
 
     private void alert(String title, String msg) {
         new Alert(Alert.AlertType.WARNING, msg, ButtonType.OK).showAndWait();
@@ -1132,7 +1353,7 @@ public class GUI {
     private boolean confirm(String msg) {
         Alert a = new Alert(Alert.AlertType.CONFIRMATION, msg, ButtonType.YES, ButtonType.NO);
         a.setHeaderText(null);
-        Optional<ButtonType> r = a.showAndWait();
+        Optional<ButtonType> r = a.show();
         return r.isPresent() && r.get() == ButtonType.YES;
     }
 }
