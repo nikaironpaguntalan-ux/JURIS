@@ -213,31 +213,67 @@ public class GUI {
     }
 
     private ScrollPane buildDashboardPanel() {
+
         VBox panel = new VBox(20);
         panel.setPadding(new Insets(24));
 
         Label heading = sectionHeading("Dashboard");
 
-        int[] stats = db.getCaseStats();
+        int[] stats;
+        List<String[]> caseTypes;
+        VBox wlBox;
+
+        if (currentUser.isProsecutor()) {
+
+            stats = db.getCaseStatsByProsecutor(currentUser.getFullName());
+            caseTypes = db.getCasesByTypeByProsecutor(currentUser.getFullName());
+
+            wlBox = chartBox(
+                    "My Workload",
+                    db.getMyWorkload(currentUser.getFullName()),
+                    Math.max(stats[1], 1),
+                    RED
+            );
+
+        } else {
+
+            stats = db.getCaseStats();
+            caseTypes = db.getCasesByType();
+
+            wlBox = chartBox(
+                    "Prosecutor Workload (Active Cases)",
+                    db.getProsecWorkload(),
+                    50,
+                    RED
+            );
+        }
         HBox cards = new HBox(16,
-                statCard("Total Active Cases", String.valueOf(stats[1]), BLUE),
+                statCard(
+                        currentUser.isProsecutor() ? "My Active Cases" : "Total Active Cases",
+                        String.valueOf(stats[1]),
+                        BLUE
+                ),
                 statCard("Resolved Cases", String.valueOf(stats[2]), "#1E8A44"),
-                statCard("Dismissed Cases", String.valueOf(stats[3]), RED),
-                statCard("Total Prosecutors", String.valueOf(db.getProsecutorCount()), DARK_BLUE)
+                statCard("Dismissed Cases", String.valueOf(stats[3]), RED)
         );
 
-        VBox typeBox = chartBox("Case Categories", db.getCasesByType(), stats[0], BLUE);
-
-        VBox wlBox = chartBox("Prosecutor Workload (Active Cases)", db.getProsecWorkload(), 50, RED);
+        VBox typeBox = chartBox(
+                currentUser.isProsecutor() ? "My Case Categories" : "Case Categories",
+                caseTypes,
+                stats[0],
+                BLUE
+        );
 
         HBox bottom = new HBox(20, typeBox, wlBox);
         HBox.setHgrow(typeBox, Priority.ALWAYS);
         HBox.setHgrow(wlBox, Priority.ALWAYS);
 
         panel.getChildren().addAll(heading, cards, bottom);
+
         ScrollPane sp = new ScrollPane(panel);
         sp.setFitToWidth(true);
         sp.setStyle("-fx-background-color: " + LT_GRAY + ";");
+
         return sp;
     }
 
@@ -442,6 +478,7 @@ public class GUI {
     private TableColumn<CaseRec, Void> actionCol(TableView<CaseRec> table) {
         TableColumn<CaseRec, Void> col = new TableColumn<>("Actions");
         col.setPrefWidth(130);
+
         col.setCellFactory(c -> new TableCell<>() {
 
             final Button viewBtn = smallBtn("View", BLUE);
@@ -450,32 +487,44 @@ public class GUI {
             @Override
             protected void updateItem(Void v, boolean empty) {
                 super.updateItem(v, empty);
+
                 if (empty) {
                     setGraphic(null);
                     return;
                 }
 
-                viewBtn.setOnAction(e
-                        -> showCaseDetails(getTableView().getItems().get(getIndex()), table));
+                viewBtn.setOnAction(e -> {
+                    CaseRec selected = getTableRow().getItem();
+                    if (selected != null) {
+                        showCaseDetails(selected, table);
+                    }
+                });
 
                 delBtn.setOnAction(e -> {
+                    CaseRec c = getTableRow().getItem();
+                    if (c == null) {
+                        return;
+                    }
+
                     if (!currentUser.isAdmin()) {
                         alert("Access Denied", "Only Admin can delete cases.");
                         return;
                     }
 
-                    CaseRec c = getTableView().getItems().get(getIndex());
                     if (confirm("Delete case " + c.getCaseID() + "?")) {
                         db.deleteCase(c.getCaseID());
                         db.writeAuditLog(currentUser.getUsername(), "DELETE_CASE", c.getCaseID());
                         refreshCaseTable(table, null, null, null, null, null, "All Time", null, null);
                     }
                 });
+
                 HBox box = new HBox(6, viewBtn, delBtn);
                 box.setAlignment(Pos.CENTER);
+
                 setGraphic(box);
             }
         });
+
         return col;
     }
 
@@ -501,13 +550,20 @@ public class GUI {
             String dateFilter,
             LocalDate fromDate,
             LocalDate toDate) {
+
+        String finalProsecutor = currentUser.isProsecutor()
+                ? currentUser.getFullName()
+                : null;
+
         List<Schedules> list = db.searchSchedulesAdvanced(
                 caseId,
                 accused,
+                finalProsecutor,
                 dateFilter,
                 fromDate,
                 toDate
         );
+
         if (list == null) {
             list = new java.util.ArrayList<>();
         }
@@ -517,25 +573,34 @@ public class GUI {
     private void showCaseDetails(CaseRec c, TableView<CaseRec> table) {
         Stage dlg = dialog("Case Details | " + c.getCaseID());
         VBox box = new VBox(12);
+        box.setFillWidth(true);
+        VBox.setVgrow(box, Priority.ALWAYS);
         box.setPadding(new Insets(24));
         box.setStyle("-fx-background-color: white;");
-
         String bg = statusColor(c.getCaseStatus());
         HBox hdr = new HBox(16);
         hdr.setPadding(new Insets(12, 16, 12, 16));
         hdr.setStyle("-fx-background-color: " + DARK_BLUE + "; -fx-background-radius: 6;");
         Label idLbl = new Label(c.getCaseID());
         idLbl.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;");
+
         Region sp = new Region();
         HBox.setHgrow(sp, Priority.ALWAYS);
-        Label statusLbl = new Label(c.getCaseStatus());
-        statusLbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;-fx-padding: 4 12; -fx-background-radius: 4; -fx-font-weight: bold;");
-        hdr.getChildren().addAll(idLbl, sp, statusLbl);
 
+        Label statusLbl = new Label(c.getCaseStatus());
+        statusLbl.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: white;"
+                + "-fx-padding: 4 12; -fx-background-radius: 4; -fx-font-weight: bold;");
+
+        hdr.getChildren().addAll(idLbl, sp, statusLbl);
         GridPane grid = new GridPane();
         grid.setHgap(16);
         grid.setVgap(10);
         grid.setPadding(new Insets(12, 0, 0, 0));
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setMinWidth(120);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
         String[][] fields = {
             {"Case Type", c.getCaseType()},
             {"Nature", c.getCaseNature()},
@@ -544,37 +609,114 @@ public class GUI {
             {"Complainant", c.getComplainant()},
             {"Prosecutor", c.getProsecutor()},
             {"Judge", c.getJudge()},
-            {"Hearing Date", c.getHearingDate()},
             {"Branch", c.getBranch()},
             {"Witness", c.getWitness()},
             {"Evidence", c.getEvidence()},
             {"Verdict", c.getVerdict()},
             {"Description", c.getCaseDesc()},};
-
         for (int i = 0; i < fields.length; i++) {
+
             Label k = new Label(fields[i][0] + ":");
             k.setStyle("-fx-font-weight: bold; -fx-text-fill: " + DARK_BLUE + ";");
-            Label v = new Label(notEmpty(fields[i][1]));
-            v.setWrapText(true);
-            grid.add(k, 0, i);
-            grid.add(v, 1, i);
+            if (fields[i][0].equals("Description")) {
+                TextArea desc = new TextArea(notEmpty(fields[i][1]));
+                desc.setPrefHeight(Region.USE_COMPUTED_SIZE);
+                desc.setEditable(true);
+                desc.setWrapText(true);
+                desc.setMaxWidth(Double.MAX_VALUE);
+                desc.setStyle(
+                        "-fx-background-color: transparent;"
+                        + "-fx-border-color: transparent;"
+                        + "-fx-padding: 4;"
+                        + "-fx-font-size: 13px;"
+                );
+                desc.setPrefRowCount(1);
+                desc.textProperty().addListener((obs, oldText, newText) -> {
+                    desc.setPrefHeight(desc.getParagraphs().size() * 22 + 20);
+                    desc.getParent().layout();
+                });
+                GridPane.setHgrow(desc, Priority.ALWAYS);
+                GridPane.setVgrow(desc, Priority.ALWAYS);
+                grid.add(k, 0, i);
+                grid.add(desc, 1, i);
+            } else {
+                Label v = new Label(notEmpty(fields[i][1]));
+                v.setWrapText(true);
+                v.setMaxWidth(Double.MAX_VALUE);
+                GridPane.setHgrow(v, Priority.ALWAYS);
+                grid.add(k, 0, i);
+                grid.add(v, 1, i);
+            }
         }
 
-        Button editBtn = new Button("Edit Case");
-        styleBlue(editBtn);
-        editBtn.setOnAction(e -> {
-            dlg.close();
-            showCaseForm(c, table);
-        });
-        Button closeBtn = new Button("Close");
-        closeBtn.setOnAction(e -> dlg.close());
+        List<Schedules> scheds = db.getSchedulesByCaseID(c.getCaseID());
 
-        box.getChildren().addAll(hdr, grid, new HBox(10, editBtn, closeBtn));
-        dlg.setScene(new Scene(new ScrollPane(box), 540, 560));
+        VBox schedBox = new VBox(5);
+
+        if (scheds.isEmpty()) {
+            schedBox.getChildren().add(new Label("No hearing schedules."));
+        } else {
+            for (Schedules s : scheds) {
+                String text = "• " + s.getDatetime();
+
+                if (s.getReSched() != null && !s.getReSched().isEmpty()) {
+                    text += " → Rescheduled to: " + s.getReSched();
+                }
+
+                if (s.getReason() != null && !s.getReason().isEmpty()) {
+                    text += " (" + s.getReason() + ")";
+                }
+                Label lbl = new Label(text);
+                lbl.setWrapText(true);
+                schedBox.getChildren().add(lbl);
+            }
+        }
+        int rowIndex = fields.length;
+        Label hearingLabel = new Label("Hearings:");
+
+        hearingLabel.setStyle(
+                "-fx-font-weight: bold; -fx-text-fill: " + DARK_BLUE + ";");
+        grid.add(hearingLabel,
+                0, rowIndex);
+        grid.add(schedBox,
+                1, rowIndex);
+        HBox buttonBox;
+
+        boolean canEdit = currentUser.isAdmin() || currentUser.getRole().equalsIgnoreCase("Staff");
+        if (canEdit) {
+            Button editBtn = new Button("Edit Case");
+            styleBlue(editBtn);
+            editBtn.setOnAction(e -> {
+                dlg.close();
+                showCaseForm(c, table);
+            });
+            Button closeBtn = new Button("Close");
+            closeBtn.setOnAction(e -> dlg.close());
+
+            buttonBox = new HBox(10, editBtn, closeBtn);
+
+        } else {
+            Button closeBtn = new Button("Close");
+            closeBtn.setOnAction(e -> dlg.close());
+
+            buttonBox = new HBox(10, closeBtn);
+        }
+
+        box.getChildren().addAll(hdr, grid, buttonBox);
+
+        ScrollPane sd = new ScrollPane(box);
+        sd.setFitToWidth(true);
+        sd.setFitToHeight(true);
+        dlg.setScene(new Scene(sd, 540, 560));
         dlg.show();
+
     }
 
     private void showCaseForm(CaseRec existing, TableView<CaseRec> table) {
+        if (!(currentUser.isAdmin() || currentUser.getRole().equalsIgnoreCase("Staff"))) {
+            alert("Access Denied", "You are not allowed to edit cases.");
+            return;
+        }
         boolean isEdit = existing != null;
         Stage dlg = dialog(isEdit ? "Edit Case - " + existing.getCaseID() : "Register New Case");
 
@@ -832,7 +974,7 @@ public class GUI {
             }
         });
         table.getColumns().addAll(caseCol, accusedCol, dtCol, rsCol, reasonCol, actCol);
-        table.setItems(FXCollections.observableArrayList(db.getUpcomingSchedules()));
+        refreshScheduleTable(table, null, null, "All Time", null, null);
         searchBtn.setOnAction(e -> {
             if ("Custom Range".equals(dateFilterCb.getValue())) {
                 if (fromDate.getValue() == null || toDate.getValue() == null) {
@@ -905,7 +1047,7 @@ public class GUI {
                     datetime,
                     currentUser.getUsername()
             );
-            table.setItems(FXCollections.observableArrayList(db.getUpcomingSchedules()));
+            refreshScheduleTable(table, null, null, "All Time", null, null);
             dlg.close();
         });
         form.getChildren().addAll(
@@ -969,7 +1111,7 @@ public class GUI {
                     currentUser.getUsername()
             );
 
-            table.setItems(FXCollections.observableArrayList(db.getUpcomingSchedules()));
+            refreshScheduleTable(table, null, null, "All Time", null, null);
             dlg.close();
         });
         form.getChildren().addAll(
@@ -1353,7 +1495,7 @@ public class GUI {
     private boolean confirm(String msg) {
         Alert a = new Alert(Alert.AlertType.CONFIRMATION, msg, ButtonType.YES, ButtonType.NO);
         a.setHeaderText(null);
-        Optional<ButtonType> r = a.show();
+        Optional<ButtonType> r = a.showAndWait();
         return r.isPresent() && r.get() == ButtonType.YES;
     }
 }
