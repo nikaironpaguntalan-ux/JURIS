@@ -339,6 +339,9 @@ public class GUI {
         VBox panel = new VBox(16);
         panel.setPadding(new Insets(24));
         Button addBtn = new Button("+ New Case");
+        if (currentUser.isProsecutor()) {
+            addBtn.setDisable(true);
+        }
         styleRed(addBtn);
         HBox header = headerRow("Case List", addBtn);
         TextField caseIdFld = styledTextField("Case ID", "");
@@ -621,7 +624,7 @@ public class GUI {
             if (fields[i][0].equals("Description")) {
                 TextArea desc = new TextArea(notEmpty(fields[i][1]));
                 desc.setPrefHeight(Region.USE_COMPUTED_SIZE);
-                desc.setEditable(true);
+                desc.setEditable(false);
                 desc.setWrapText(true);
                 desc.setMaxWidth(Double.MAX_VALUE);
                 desc.setStyle(
@@ -760,7 +763,55 @@ public class GUI {
         prosecCb.setValue(prosecs.contains(curProsec) ? curProsec : "(Unassigned)");
 
         TextField judgeFld = styledTextField("Judge (optional)", opt(existing == null ? null : existing.getJudge()));
-        TextField hearingFld = styledTextField("Hearing Date (YYYY-MM-DD, optional)", opt(existing == null ? null : existing.getHearingDate()));
+        DatePicker hearingDate = new DatePicker();
+        Spinner<Integer> hour = new Spinner<>(1, 12, 9);
+        Spinner<Integer> minute = new Spinner<>(0, 59, 0);
+        Spinner<Integer> second = new Spinner<>(0, 59, 0);
+
+        ComboBox<String> ampm = new ComboBox<>();
+        ampm.getItems().addAll("AM", "PM");
+        ampm.setValue("AM");
+        hour.setEditable(true);
+        minute.setEditable(true);
+        second.setEditable(true);
+        HBox hearingBox = new HBox(5,
+                hearingDate,
+                hour, new Label(":"),
+                minute, new Label(":"),
+                second,
+                new Label(" "),
+                ampm
+        );
+        if (existing != null && existing.getHearingDate() != null && !existing.getHearingDate().isEmpty()) {
+            try {
+                String[] parts = existing.getHearingDate().split(" ");
+                hearingDate.setValue(LocalDate.parse(parts[0]));
+
+                String[] time = parts[1].split(":");
+                int h = Integer.parseInt(time[0]);
+                int m = Integer.parseInt(time[1]);
+                int s = Integer.parseInt(time[2]);
+
+                if (h >= 12) {
+                    ampm.setValue("PM");
+                    if (h > 12) {
+                        h -= 12;
+                    }
+                } else {
+                    ampm.setValue("AM");
+                    if (h == 0) {
+                        h = 12;
+                    }
+                }
+
+                hour.getValueFactory().setValue(h);
+                minute.getValueFactory().setValue(m);
+                second.getValueFactory().setValue(s);
+
+            } catch (Exception ignored) {
+            }
+        }
+
         TextField branchFld = styledTextField("Branch (optional)", opt(existing == null ? null : existing.getBranch()));
         TextField witnessFld = styledTextField("Witness (optional)", opt(existing == null ? null : existing.getWitness()));
         TextField evidenceFld = styledTextField("Evidence (optional)", opt(existing == null ? null : existing.getEvidence()));
@@ -781,7 +832,7 @@ public class GUI {
                 label("Case Status:"), statusCb,
                 natureFld, filedFld, accusedFld, complainantFld, descFld, optLbl,
                 label("Prosecutor:"), prosecCb,
-                judgeFld, hearingFld, branchFld, witnessFld, evidenceFld, verdictFld,
+                judgeFld, label("Hearing Date & Time(Optional):"), hearingBox, branchFld, witnessFld, evidenceFld, verdictFld,
                 errorLbl, new HBox(12, saveBtn, cancelBtn)
         );
 
@@ -799,15 +850,29 @@ public class GUI {
 
             String caseID = caseIDFld.getText().trim();
             String prosec = prosecCb.getValue().equals("(Unassigned)") ? null : prosecCb.getValue();
+            String hearingDatetime = null;
 
+            if (hearingDate.getValue() != null) {
+                int h = hour.getValue();
+                int m = minute.getValue();
+                int sVal = second.getValue();
+
+                if (ampm.getValue().equals("PM") && h != 12) {
+                    h += 12;
+                } else if (ampm.getValue().equals("AM") && h == 12) {
+                    h = 0;
+                }
+
+                hearingDatetime = hearingDate.getValue()
+                        + String.format(" %02d:%02d:%02d", h, m, sVal);
+            }
             boolean ok;
             if (isEdit) {
                 db.updt_all(existing.getCaseID(),
                         typeCb.getValue(), natureFld.getText().trim(),
                         statusCb.getValue(), accusedFld.getText().trim(),
                         complainantFld.getText().trim(), prosec,
-                        blank(judgeFld), filedFld.getValue().toString(),
-                        blank(hearingFld), blank(witnessFld), blank(evidenceFld),
+                        blank(judgeFld), filedFld.getValue().toString(),hearingDatetime, blank(witnessFld), blank(evidenceFld),
                         blank(branchFld), blank(verdictFld), descFld.getText().trim(),
                         caseID);
                 db.writeAuditLog(currentUser.getUsername(), "UPDATE_CASE", "Updated: " + existing.getCaseID());
@@ -822,7 +887,7 @@ public class GUI {
                         natureFld.getText().trim(), statusCb.getValue(),
                         accusedFld.getText().trim(), complainantFld.getText().trim(),
                         prosec, blank(judgeFld), filedFld.getValue().toString(),
-                        blank(hearingFld), blank(witnessFld), blank(evidenceFld),
+                        hearingDatetime, blank(witnessFld), blank(evidenceFld),
                         blank(branchFld), blank(verdictFld), descFld.getText().trim());
 
                 if (ok) {
@@ -878,26 +943,42 @@ public class GUI {
     }
 
     private VBox buildSchedulePanel() {
+
         VBox panel = new VBox(16);
         panel.setPadding(new Insets(24));
+
         Button addBtn = new Button("+ New Hearing");
         styleRed(addBtn);
+
+        if (currentUser.isProsecutor()) {
+            addBtn.setDisable(true);
+        }
+
         HBox header = headerRow("Hearing Calendar", addBtn);
+
         TextField caseIdFld = styledTextField("Case ID", "");
         TextField accusedFld = styledTextField("Accused Name", "");
-        ComboBox<String> dateFilterCb = combo("All Time",
-                "All Time", "Last 7 Days", "Last 30 Days", "This Year", "Custom Range");
+
+        ComboBox<String> dateFilterCb = combo(
+                "All Time",
+                "All Time", "Last 7 Days", "Last 30 Days", "This Year", "Custom Range"
+        );
+
         DatePicker fromDate = new DatePicker();
         DatePicker toDate = new DatePicker();
+
         fromDate.setDisable(true);
         toDate.setDisable(true);
+
         dateFilterCb.setOnAction(e -> {
             boolean isCustom = "Custom Range".equals(dateFilterCb.getValue());
             fromDate.setDisable(!isCustom);
             toDate.setDisable(!isCustom);
         });
+
         Button searchBtn = new Button("Search");
         styleBlue(searchBtn);
+
         HBox searchRow = new HBox(10,
                 caseIdFld,
                 accusedFld,
@@ -909,53 +990,42 @@ public class GUI {
         searchRow.setAlignment(Pos.CENTER_LEFT);
         TableView<Schedules> table = new TableView<>();
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
         TableColumn<Schedules, String> caseCol = new TableColumn<>("Case ID");
-        caseCol.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getCaseID()));
+        caseCol.setCellValueFactory(d
+                -> new SimpleStringProperty(d.getValue().getCaseID())
+        );
+
         TableColumn<Schedules, String> accusedCol = new TableColumn<>("Accused Name");
         accusedCol.setCellValueFactory(d -> {
             CaseRec c = db.getCaseByCaseID(d.getValue().getCaseID());
             return new SimpleStringProperty(c != null ? c.getAccused() : "—");
         });
+
         TableColumn<Schedules, String> dtCol = new TableColumn<>("Scheduled Date/Time");
 
-        dtCol.setCellValueFactory(d
-                -> new SimpleStringProperty(d.getValue().getDatetime())
-        );
+        dtCol.setCellValueFactory(d -> {
+            Schedules s = d.getValue();
 
-        dtCol.setCellFactory(col -> new TableCell<Schedules, String>() {
-            private final Label dateLabel = new Label();
+            if (s.getReSched() != null && !s.getReSched().isEmpty()) {
+                return new SimpleStringProperty(s.getReSched());
+            }
+            return new SimpleStringProperty(s.getDatetime());
+        });
+
+        TableColumn<Schedules, Void> actCol = new TableColumn<>("Action");
+
+        actCol.setCellFactory(col -> new TableCell<Schedules, Void>() {
+
             private final Button viewBtn = smallBtn("View", BLUE);
-            private final HBox box = new HBox(8, dateLabel, viewBtn);
+            private final Button rsBtn = smallBtn("Reschedule", RED);
 
             {
-                box.setAlignment(Pos.CENTER);
                 viewBtn.setOnAction(e -> {
                     Schedules s = getTableView().getItems().get(getIndex());
                     showViewScheduleDialog(s);
                 });
-            }
 
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setGraphic(null);
-                } else {
-                    dateLabel.setText(item);
-                    setGraphic(box);
-                }
-            }
-        });
-
-        TableColumn<Schedules, String> rsCol = new TableColumn<>("Rescheduled To");
-        rsCol.setCellValueFactory(d -> new SimpleStringProperty(notEmpty(d.getValue().getReSched())));
-        TableColumn<Schedules, String> reasonCol = new TableColumn<>("Reason");
-        reasonCol.setCellValueFactory(d -> new SimpleStringProperty(notEmpty(d.getValue().getReason())));
-        TableColumn<Schedules, Void> actCol = new TableColumn<>("Action");
-        actCol.setCellFactory(col -> new TableCell<Schedules, Void>() {
-            private final Button rsBtn = smallBtn("Reschedule", BLUE);
-
-            {
                 rsBtn.setOnAction(e -> {
                     Schedules s = getTableView().getItems().get(getIndex());
                     showRescheduleDialog(s, table);
@@ -969,12 +1039,17 @@ public class GUI {
                 if (empty) {
                     setGraphic(null);
                 } else {
-                    setGraphic(new HBox(6, rsBtn));
+                    HBox box = new HBox(6, viewBtn, rsBtn);
+                    box.setAlignment(Pos.CENTER);
+                    setGraphic(box);
                 }
             }
         });
-        table.getColumns().addAll(caseCol, accusedCol, dtCol, rsCol, reasonCol, actCol);
+
+        table.getColumns().addAll(caseCol, accusedCol, dtCol, actCol);
+
         refreshScheduleTable(table, null, null, "All Time", null, null);
+
         searchBtn.setOnAction(e -> {
             if ("Custom Range".equals(dateFilterCb.getValue())) {
                 if (fromDate.getValue() == null || toDate.getValue() == null) {
@@ -982,6 +1057,7 @@ public class GUI {
                     return;
                 }
             }
+
             refreshScheduleTable(
                     table,
                     caseIdFld.getText().trim(),
@@ -991,9 +1067,12 @@ public class GUI {
                     toDate.getValue()
             );
         });
+
         addBtn.setOnAction(e -> showAddScheduleDialog(table));
+
         VBox.setVgrow(table, Priority.ALWAYS);
         panel.getChildren().addAll(header, searchRow, table);
+
         return panel;
     }
 
